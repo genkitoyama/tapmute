@@ -44,9 +44,7 @@ struct MeetingProfile {
         defaultTitlePatterns: ["Meeting", "ミーティング"],
         defaultShortcut: "cmd+shift+a",
         needsFocus: false,
-        // ミュート中 : AXTabGroup desc="… ミュートされた …" / AXButton desc="… ミュート解除する"
-        // 解除中     : AXTabGroup desc="… ミュート解除された …" / AXButton desc="… ミュートする"
-        muteHints: MuteHints(markers: MuteHints.standard, searchWebArea: false)
+        muteHints: MuteHints.standard(searchWebArea: false)
     )
 
     /// Meet はブラウザのタブ。PWA（com.google.Chrome.app.<hash>）と素のタブの両方を見る。
@@ -68,16 +66,8 @@ struct MeetingProfile {
         defaultTitlePatterns: ["^Meet\\s*[-–—]", "^Meet$"],
         defaultShortcut: "cmd+d",
         needsFocus: true,
-        // Meet はページ内のボタン。ミュート中は「マイクをオンにする」を提案してくる
-        muteHints: MuteHints(
-            markers: [
-                ("マイクをオンにする", .muted),
-                ("turn on microphone", .muted),
-                ("マイクをオフにする", .unmuted),
-                ("turn off microphone", .unmuted),
-            ] + MuteHints.standard,
-            searchWebArea: true
-        )
+        // Meet はページ内のボタン。Chromium の AX 生成を有効にしないと届かない
+        muteHints: MuteHints.standard(searchWebArea: true)
     )
 
     /// 新 Teams（com.microsoft.teams2）。グローバルショートカットがないため前面化が要る。
@@ -90,7 +80,8 @@ struct MeetingProfile {
         defaultTitlePatterns: ["Meeting", "会議", "ミーティング"],
         defaultShortcut: "cmd+shift+m",
         needsFocus: true,
-        muteHints: MuteHints(markers: MuteHints.standard, searchWebArea: false)
+        // 新 Teams は web シェル。ボタンは depth 20 付近にある
+        muteHints: MuteHints.standard(searchWebArea: true)
     )
 }
 
