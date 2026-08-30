@@ -1,7 +1,7 @@
 import Cocoa
 import SwiftUI
 
-/// 設定画面の状態。UserDefaults への書き戻しはこのクラスに集約する。
+/// State of the settings window. Writing back to UserDefaults is concentrated in this class.
 final class SettingsModel: ObservableObject {
 
     struct Row: Identifiable {
@@ -87,8 +87,8 @@ struct SettingsView: View {
         .frame(width: 580, height: 480)
     }
 
-    /// macOS の Form はラベル列と内容列に分けてしまい、ラベルなしの行が右へ寄る。
-    /// ここは行ごとの見た目を完全に決めたいので VStack で組む。
+    /// A macOS Form splits rows into a label column and a content column, pushing rows without a
+    /// label to the right. Every row's look is decided here, so a VStack is used instead.
     private var general: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 12) {
@@ -185,7 +185,7 @@ struct SettingsView: View {
     }
 }
 
-/// 設定ウィンドウを 1 枚だけ持つコントローラ。
+/// Owns exactly one settings window.
 final class SettingsWindowController {
     private var window: NSWindow?
 

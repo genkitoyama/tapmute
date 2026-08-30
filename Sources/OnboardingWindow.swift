@@ -1,15 +1,15 @@
 import Cocoa
 import SwiftUI
 
-/// 権限の状態を出して、System Settings への導線を置くだけの画面。
-/// 権限は付与後にプロセス再起動が要ることがあるので、再起動ボタンも用意する。
+/// A screen that shows permission state and links to System Settings, nothing more.
+/// A restart is sometimes needed after granting, so a restart button is provided.
 final class OnboardingModel: ObservableObject {
     @Published var states: [PermissionManager.Permission: Bool] = [:]
     private var timer: Timer?
 
     init() {
         reload()
-        // 設定アプリ側で切り替えた結果をそのまま反映したいのでポーリングする
+        // Poll so a change made in System Settings shows up here directly
         timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
             self?.reload()
         }

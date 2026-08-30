@@ -1,10 +1,10 @@
 import Cocoa
 
-// CLI プローブ。アプリに権限を与える前に、仕組みが動くかをターミナルから確かめるためのもの。
-// （ターミナル自身のアクセシビリティ / 入力監視の権限で動く）
+// CLI probes. They exist to check the mechanism from a terminal before granting the app anything.
+// (They run with the terminal's own Accessibility / Input Monitoring permissions.)
 let arguments = CommandLine.arguments
 
-// プローブはパイプ越しに見ることが多いので、行ごとに吐き出させる
+// Probe output is usually read through a pipe, so flush it line by line
 if arguments.contains("--probe-keys") || arguments.contains("--probe-windows")
     || arguments.contains("--probe-mute-markers") {
     setvbuf(stdout, nil, _IOLBF, 0)
@@ -20,8 +20,8 @@ if arguments.contains("--probe-windows") {
 }
 
 if arguments.contains("--probe-mute-markers") {
-    // 実機で採取した文言に対する判定の回帰チェック。
-    // アプリの読みが狂ったとき、AX を掘り直す前にここで切り分けられる。
+    // Regression check for the classifier against wording captured from the real apps.
+    // When a reading goes wrong, this narrows it down before digging through accessibility again.
     let fixtures: [(app: String, text: String, isControl: Bool, expected: MuteState?)] = [
         ("Zoom",  "自分のオーディオをミュート解除する", true, .muted),
         ("Zoom",  "自分のオーディオをミュートする", true, .unmuted),
@@ -29,7 +29,7 @@ if arguments.contains("--probe-mute-markers") {
         ("Zoom",  "参加者名, ミュート解除されたコンピュータ オーディオ", false, .unmuted),
         ("Teams", "マイクのミュートを解除", true, .muted),
         ("Teams", "マイクのミュート", true, .unmuted),
-        // 動画タイルの説明は状態を断定できないので、判定に使ってはいけない
+        // A video tile description cannot settle the state, so it must not decide the reading
         ("Teams", "自分のビデオ, ミュート解除, ビデオがオンになっています", false, nil),
         ("Meet",  "Turn on microphone", true, .muted),
         ("Meet",  "Turn off microphone", true, .unmuted),

@@ -2,10 +2,10 @@ import Cocoa
 import ApplicationServices
 import IOKit.hid
 
-/// このアプリが要る権限の確認と、設定画面への誘導。
+/// Checking the permissions this app needs, and pointing at the right settings pane.
 ///
-/// 入力監視が見落とされやすい。これがないと CGEvent.tapCreate が nil を返し、
-/// 「起動はするが何も起きない」状態になるので、必ず UI に出す。
+/// Input Monitoring is the one that gets missed. Without it CGEvent.tapCreate returns nil and
+/// the app launches but does nothing, so it must be surfaced in the UI.
 enum PermissionManager {
 
     enum Permission: String, CaseIterable {
@@ -57,7 +57,7 @@ enum PermissionManager {
         }
     }
 
-    /// 必須権限がすべて揃っているか。
+    /// Whether every required permission is present.
     static var isReady: Bool {
         Permission.allCases.filter(\.isRequired).allSatisfy(\.isGranted)
     }
@@ -66,7 +66,7 @@ enum PermissionManager {
         Permission.allCases.filter { $0.isRequired && !$0.isGranted }
     }
 
-    /// システムのダイアログを出しつつ確認する（初回起動時用）。
+    /// Check while also showing the system dialog (for first launch).
     static func request(_ permission: Permission) {
         switch permission {
         case .accessibility:
@@ -84,7 +84,7 @@ enum PermissionManager {
         NSWorkspace.shared.open(permission.settingsURL)
     }
 
-    /// 権限を付けた直後は再起動しないと反映されないことがある。
+    /// Right after granting, a restart is sometimes needed for it to take effect.
     static func relaunch() {
         let url = Bundle.main.bundleURL
         let configuration = NSWorkspace.OpenConfiguration()

@@ -1,13 +1,13 @@
 import Cocoa
 import ApplicationServices
 
-/// 「いまミュート操作を送るべき相手」。
+/// The target the mute action should be sent to right now.
 struct MeetingTarget {
     let profile: MeetingProfile
     let app: NSRunningApplication
-    /// 前面化に使うウィンドウ。WindowServer 経由でしか見つからなかった場合は nil。
+    /// The window used for focusing. nil when the target was only found through the WindowServer.
     let window: AXUIElement?
-    /// ブラウザで、対象が非アクティブタブだった場合に押すタブ要素。
+    /// The tab element to press when the target sits in a background browser tab.
     let tab: AXUIElement?
     let matchedTitle: String
     let source: WindowInfo.Source
@@ -15,11 +15,11 @@ struct MeetingTarget {
     var displayName: String { profile.displayName }
 }
 
-/// 会議の検出。
+/// Meeting detection.
 ///
-/// 検出そのものは AX 走査を含んで数十 ms かかることがあるため、イベントタップの
-/// コールバックからは絶対に同期実行しない。3 秒ごとのタイマーとワークスペース通知で
-/// バックグラウンドに走らせ、タップ側は current を読むだけにする。
+/// Detection can take tens of milliseconds because of the accessibility walk, so it must never
+/// run synchronously from the event tap callback. A 3 second timer and workspace notifications
+/// run it in the background; the tap side only reads `current`.
 final class MeetingDetector {
 
     private(set) var current: MeetingTarget?
@@ -27,7 +27,7 @@ final class MeetingDetector {
     private(set) var micActive = false
     private(set) var lastScanDate = Date.distantPast
 
-    /// 検出結果またはミュート状態が変わったときに呼ばれる（メインスレッド）。
+    /// Called on the main thread when the detected target or the mute state changes.
     var onChange: ((MeetingTarget?) -> Void)?
 
     private let queue = DispatchQueue(label: "com.meetmute.detector", qos: .userInitiated)
@@ -35,7 +35,7 @@ final class MeetingDetector {
     private var scanning = false
     private var windowServerTitlesAvailable = false
 
-    // MARK: - ライフサイクル
+    // MARK: - Lifecycle
 
     func start() {
         windowServerTitlesAvailable = AccessibilityHelper.canReadWindowServerTitles()
@@ -65,14 +65,14 @@ final class MeetingDetector {
         refresh()
     }
 
-    /// 画面収録権限は後から付与されうるので、権限確認のたびに取り直す。
+    /// Screen Recording can be granted later, so re-measure it whenever permissions are checked.
     func refreshCapabilities() {
         windowServerTitlesAvailable = AccessibilityHelper.canReadWindowServerTitles()
     }
 
     var canReadWindowServerTitles: Bool { windowServerTitlesAvailable }
 
-    // MARK: - 走査
+    // MARK: - Scanning
 
     func refresh() {
         guard !scanning else { return }
@@ -108,13 +108,13 @@ final class MeetingDetector {
             for app in running where matches(app: app, profile: profile) {
                 let windows = AccessibilityHelper.windows(for: app, includeWindowServer: useWindowServer)
 
-                // 1) ウィンドウタイトル（＝ブラウザならアクティブタブ）で一致するか
+                // 1) Does a window title match (for a browser that is the active tab)
                 if let hit = windows.first(where: { TitleMatcher.matches(title: $0.title, patterns: patterns) }) {
                     return MeetingTarget(profile: profile, app: app, window: hit.element,
                                          tab: nil, matchedTitle: hit.title, source: hit.source)
                 }
 
-                // 2) ブラウザなら、非アクティブタブも探す（AX が見えている Space に限る）
+                // 2) For a browser, also look at background tabs (only on the Space accessibility can see)
                 if profile.isBrowser, Preferences.shared.switchBrowserTab {
                     for info in windows {
                         guard let element = info.element, info.source == .axWindowList else { continue }
@@ -147,9 +147,9 @@ final class MeetingDetector {
         }
     }
 
-    // MARK: - デバッグ
+    // MARK: - Debugging
 
-    /// CLI プローブ用。ランループなしでその場で 1 回だけ走査する。
+    /// For the CLI probes. Scans once, in place, without a run loop.
     @discardableResult
     func scanSynchronously() -> MeetingTarget? {
         refreshCapabilities()
@@ -159,7 +159,7 @@ final class MeetingDetector {
         return target
     }
 
-    /// 検出がうまくいかないときに、ユーザーが自分でタイトルを確認するための一覧。
+    /// The list a user needs in order to check the real titles when detection is not working.
     func debugReport() -> String {
         var lines: [String] = []
         lines.append("MeetMute ウィンドウ一覧  \(Date())")

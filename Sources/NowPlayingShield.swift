@@ -2,22 +2,22 @@ import Cocoa
 import AVFoundation
 import MediaPlayer
 
-/// 会議中だけ「再生中アプリ（Now Playing）」の座を奪う。
+/// Takes over the "Now Playing" role, but only while a meeting is detected.
 ///
-/// 実機検証の結論: メディアキーは CGEventTap では抑制できない。
-/// cgSessionEventTap / cghidEventTap のどちらで消費しても Music は起動する。
-/// now playing の配送（mediaremoted）が CG イベントパイプラインの外にあるため。
+/// Measured on real hardware: a media key cannot be suppressed with a CGEventTap.
+/// Music launches even when the event is consumed at cgSessionEventTap or cghidEventTap,
+/// because now-playing delivery (mediaremoted) lives outside the CG event pipeline.
 ///
-/// 唯一効くのは、OS から見た「いま再生しているアプリ」を自分にすること。
-/// そうすると再生/一時停止コマンドは Music ではなくこのアプリに届く。
-/// 座を奪うには実際に音を鳴らしている必要があるので、無音のループを流す。
+/// The only thing that works is becoming, from the system's point of view, the app that is
+/// currently playing. Play/pause commands are then delivered here instead of to Music.
+/// Taking the role requires actually producing audio, so a silent loop is played.
 ///
-/// 会議中だけ有効にするのが肝。常時奪うと音楽の操作ができなくなる。
+/// Holding it only during meetings is essential: holding it always would break music control.
 final class NowPlayingShield {
 
-    /// タップが動いていないときの保険としてミュートを実行するためのフック。
+    /// Hook used to perform the mute as a fallback when the tap is not running.
     var onCommandFallback: (() -> Void)?
-    /// タップ側が処理できているか。true のときコマンドは握り潰すだけにする。
+    /// Whether the tap is handling keys. When true, commands are merely absorbed.
     var isTapHandlingKeys: () -> Bool = { true }
 
     private(set) var isActive = false
@@ -51,7 +51,7 @@ final class NowPlayingShield {
         isActive = false
     }
 
-    // MARK: - リモートコマンド
+    // MARK: - Remote commands
 
     private func registerCommands() {
         let center = MPRemoteCommandCenter.shared()
@@ -68,8 +68,8 @@ final class NowPlayingShield {
             }
             registeredCommands.append((command, token))
         }
-        // 次へ/前へ（EarPods の 2 回押し/3 回押し）はこのアプリの担当外。
-        // 奪ったままにすると曲送りができなくなるので明示的に無効化する。
+        // Next / previous (double and triple press on EarPods) are not this app's business.
+        // Holding those would break skipping tracks, so they are disabled explicitly.
         center.nextTrackCommand.isEnabled = false
         center.previousTrackCommand.isEnabled = false
     }
@@ -82,14 +82,14 @@ final class NowPlayingShield {
         registeredCommands.removeAll()
     }
 
-    /// 通常はイベントタップ側がミュートを実行するので、ここは受け取るだけ（＝Music に行かせない盾）。
-    /// 入力監視が切れているなど、タップが動いていないときだけ自分でミュートする。
+    /// Normally the event tap performs the mute, so this only absorbs the command (a shield that
+    /// keeps it away from Music). It mutes itself only when the tap is not running.
     private func handleCommand() {
         guard !isTapHandlingKeys() else { return }
         onCommandFallback?()
     }
 
-    // MARK: - 無音再生
+    // MARK: - Silent playback
 
     private func startSilentPlayback() -> Bool {
         do {
@@ -106,7 +106,7 @@ final class NowPlayingShield {
         }
     }
 
-    /// 1 秒ぶんの無音 WAV。外部ファイルを持たずに済ませる。
+    /// One second of silent WAV, so no external file is needed.
     private static func silentWAV(seconds: Double = 1.0, sampleRate: Int = 44_100) -> Data {
         let channels = 1
         let bitsPerSample = 16

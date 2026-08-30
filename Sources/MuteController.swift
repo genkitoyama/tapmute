@@ -1,11 +1,11 @@
 import Cocoa
 import ApplicationServices
 
-/// 検出した相手にミュートのショートカットを届ける。
+/// Delivers the mute shortcut to the detected target.
 ///
-/// Zoom はグローバルショートカットが効くのでキーを送るだけ。
-/// Meet / Teams は前面化 → キー送出 → 復帰の往復が要る。往復の途中で 2 回目の
-/// キーが来ると状態が壊れるので、処理中フラグで弾く。
+/// Zoom honours a global shortcut, so the key is simply sent.
+/// Meet / Teams need a round trip: focus -> key -> restore. A second key press during the
+/// round trip would corrupt the state, so it is rejected with a busy flag.
 final class MuteController {
 
     enum Result {
@@ -30,14 +30,14 @@ final class MuteController {
         focusAndSend(target, shortcut: shortcut, completion: completion)
     }
 
-    /// 前面化してキーを送り、元のアプリ（とタブ）に戻す。
+    /// Bring the target forward, send the key, and return to the previous app (and tab).
     private func focusAndSend(_ target: MeetingTarget, shortcut: Shortcut, completion: @escaping (Result) -> Void) {
         isBusy = true
 
         let previousApp = NSWorkspace.shared.frontmostApplication
         let delay = Preferences.shared.focusDelay
 
-        // タブを切り替えるなら、戻すために「いま表示しているタブ」の題名を控える
+        // When a tab switch is needed, remember the currently shown tab so it can be restored
         var previousTabTitle: String?
         if let tab = target.tab, let window = target.window {
             let currentTitle = AccessibilityHelper.title(window)

@@ -1,6 +1,6 @@
 import Cocoa
 
-/// "cmd+shift+a" のような文字列と CGEvent 用のキーコード / モディファイアの相互変換。
+/// Converts between a string like "cmd+shift+a" and the key code / modifiers CGEvent needs.
 struct Shortcut: Equatable {
     var keyCode: CGKeyCode
     var flags: CGEventFlags
@@ -22,7 +22,7 @@ struct Shortcut: Equatable {
         "ctrl": .maskControl, "control": .maskControl,
     ]
 
-    /// "cmd+shift+a" を解釈する。解釈できなければ nil。
+    /// Parses "cmd+shift+a". Returns nil when it cannot be parsed.
     init?(_ text: String) {
         let parts = text.lowercased()
             .split(separator: "+")
@@ -39,7 +39,7 @@ struct Shortcut: Equatable {
         self.flags = flags
     }
 
-    /// ⇧⌘A のような表示用の文字列。
+    /// A display string such as ⇧⌘A.
     var symbolic: String {
         var out = ""
         if flags.contains(.maskControl) { out += "⌃" }
@@ -50,8 +50,8 @@ struct Shortcut: Equatable {
         return out + name.uppercased()
     }
 
-    /// HID タップに向けてキーを送出する。押しっぱなしのモディファイアが混ざらないよう
-    /// down / up の両方で flags を明示する。
+    /// Post the key to the HID tap. Flags are set explicitly on both down and up so that
+    /// modifiers the user happens to be holding do not leak in.
     func post() {
         let source = CGEventSource(stateID: .hidSystemState)
         guard let down = CGEvent(keyboardEventSource: source, virtualKey: keyCode, keyDown: true),

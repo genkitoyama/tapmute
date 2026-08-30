@@ -1,10 +1,10 @@
 import Foundation
 import CoreAudio
 
-/// 入力デバイスが誰かに掴まれているか（＝通話中らしさ）を見る。
-/// 会議アプリはミュート中も入力ストリームを開いたままにするので、
-/// 「マイク稼働中」はミュート状態ではなく通話中かどうかの目安になる。
-/// 権限は不要（音そのものは触らず、デバイスの状態プロパティだけ読む）。
+/// Checks whether an input device is held by someone (= a call is probably in progress).
+/// Conferencing apps keep the input stream open even while muted, so "mic running" is a hint
+/// about being in a call, not about mute state.
+/// No permission needed: the audio itself is never touched, only device state properties.
 enum MicMonitor {
 
     static func isInputActive() -> Bool {

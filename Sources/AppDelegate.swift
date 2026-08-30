@@ -39,7 +39,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             self, selector: #selector(preferencesChanged),
             name: Preferences.didChangeNotification, object: nil)
 
-        // スリープ復帰でタップが死ぬことがあるので、起こし直す
+        // The tap can die across sleep, so wake it back up
         NSWorkspace.shared.notificationCenter.addObserver(
             self, selector: #selector(systemDidWake),
             name: NSWorkspace.didWakeNotification, object: nil)
@@ -57,8 +57,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         detector.stop()
     }
 
-    /// 会議中だけ Now Playing の座を奪う。メディアキーが Music ではなくこちらに配送され、
-    /// 「ミュートしたのに音楽が再生される」が起きなくなる。
+    /// Hold the Now Playing role only while a meeting is detected, so the media key is delivered
+    /// here instead of to Music. This is what stops "it muted, but the music started too".
     private func updateShield(for target: MeetingTarget?) {
         if target != nil && !Preferences.shared.paused {
             nowPlayingShield.activate()
@@ -67,10 +67,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
-    // MARK: - メディアキー
+    // MARK: - Media key
 
-    /// true を返すとイベントを消費する。イベントタップのコールバックから同期で呼ばれるため、
-    /// ここでは重い処理をしない。検出はタイマーで更新済みのキャッシュを読むだけ。
+    /// Return true to consume the event. Called synchronously from the event tap callback, so it
+    /// must stay cheap: detection only reads the cache that the timer keeps up to date.
     private func handlePlayPause() -> Bool {
         guard !Preferences.shared.paused else { return false }
 
@@ -82,12 +82,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         return true
     }
 
-    /// 検出済みの相手にミュートを送る。キー経路（タップ）と Now Playing 経路の共通処理。
+    /// Send the mute to the detected target. Shared by the key path (tap) and the Now Playing path.
     private func performMute() {
         guard let target = detector.current, !muteController.isBusy else { return }
         statusBar.showToast("\(target.displayName)  ミュート切替")
         muteController.toggle(target) { [weak self] _ in
-            // 切り替え直後にアイコンへ反映したいので、定期スキャンを待たずに読み直す
+            // Reflect the change in the icon without waiting for the periodic scan
             for delay in [0.35, 1.0] {
                 DispatchQueue.main.asyncAfter(deadline: .now() + delay) { self?.detector.refresh() }
             }
@@ -106,7 +106,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         updateStatus()
     }
 
-    /// 入力監視を後から許可された場合に自力で立ち上がれるようにする。
+    /// Lets the app come up on its own when Input Monitoring is granted later.
     private func scheduleTapRetry() {
         guard tapRetryTimer == nil else { return }
         tapRetryTimer = Timer.scheduledTimer(withTimeInterval: 5.0, repeats: true) { [weak self] _ in
@@ -124,7 +124,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         detector.refresh()
     }
 
-    // MARK: - メニュー操作
+    // MARK: - Menu actions
 
     private func togglePause() {
         Preferences.shared.paused.toggle()
@@ -148,8 +148,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                          permissionsOK: permissionsOK)
     }
 
-    /// 検出がうまくいかないときの調査用。実際のウィンドウ題名が分かれば、
-    /// ユーザーが設定のパターンを自分で直せる。
+    /// For investigating detection failures. Knowing the real window titles lets the user
+    /// fix the patterns in Settings themselves.
     private func dumpWindows() {
         let report = detector.debugReport()
         NSLog("%@", report)

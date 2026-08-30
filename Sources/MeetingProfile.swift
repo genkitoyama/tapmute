@@ -1,29 +1,29 @@
 import Cocoa
 
-/// 会議アプリ 1 種類ぶんの「見つけ方」と「ミュートの叩き方」。
-/// Zoom / Meet / Teams の違いはすべてこの構造体の値の違いに落とす。
+/// How to find one kind of conferencing app, and how to hit its mute.
+/// Every difference between Zoom / Meet / Teams is reduced to values in this struct.
 struct MeetingProfile {
     enum Host {
-        /// 専用アプリ。バンドル ID を直接照合する。
+        /// A dedicated app, matched by bundle identifier.
         case nativeApp
-        /// ブラウザ上のサービス。ウィンドウタイトル or タブタイトルで照合する。
+        /// A service inside a browser, matched by window or tab title.
         case browser
     }
 
     let id: String
     let displayName: String
     let host: Host
-    /// 完全一致で探すバンドル ID
+    /// Bundle identifiers matched exactly
     let bundleIDs: [String]
-    /// 前方一致で探すバンドル ID（Chrome / Edge の PWA はハッシュ付きで決め打ちできない）
+    /// Bundle identifier prefixes (Chrome / Edge PWAs carry a hash and cannot be hardcoded)
     let bundleIDPrefixes: [String]
-    /// 会議中と判定するウィンドウ / タブタイトルの正規表現（ユーザーが設定で編集できる）
+    /// Regexes for window / tab titles that mean a meeting is running (editable in Settings)
     let defaultTitlePatterns: [String]
-    /// ミュートのショートカット
+    /// The mute shortcut
     let defaultShortcut: String
-    /// true ならキー送出の前に対象ウィンドウを前面化する必要がある
+    /// true when the target window must be brought forward before the key is sent
     let needsFocus: Bool
-    /// 現在のミュート状態を AX から読むための手がかり
+    /// Hints for reading the current mute state through accessibility
     let muteHints: MuteHints
 
     var isBrowser: Bool { host == .browser }
@@ -32,22 +32,22 @@ struct MeetingProfile {
 
     static func profile(id: String) -> MeetingProfile? { all.first { $0.id == id } }
 
-    /// Zoom はグローバルショートカットが効くので、前面化せずにキーを送るだけでよい。
-    /// （Zoom 設定 → キーボードショートカット → 「グローバルショートカットを有効にする」が前提）
+    /// Zoom honours a global shortcut, so the key can be sent without focusing anything.
+    /// (Requires Zoom -> Settings -> Keyboard Shortcuts -> "Enable Global Shortcut".)
     static let zoom = MeetingProfile(
         id: "zoom",
         displayName: "Zoom",
         host: .nativeApp,
         bundleIDs: ["us.zoom.xos"],
         bundleIDPrefixes: [],
-        // 非会議時のウィンドウは "Zoom Workplace" / "Zoomクライアントヘルスチェック" なので誤爆しない
+        // Outside a meeting the windows are "Zoom Workplace" / "Zoom client health check", so no false positives
         defaultTitlePatterns: ["Meeting", "ミーティング"],
         defaultShortcut: "cmd+shift+a",
         needsFocus: false,
         muteHints: MuteHints.standard(searchWebArea: false)
     )
 
-    /// Meet はブラウザのタブ。PWA（com.google.Chrome.app.<hash>）と素のタブの両方を見る。
+    /// Meet is a browser tab. Both the PWA (com.google.Chrome.app.<hash>) and a plain tab are checked.
     static let meet = MeetingProfile(
         id: "meet",
         displayName: "Google Meet",
@@ -61,16 +61,16 @@ struct MeetingProfile {
             "com.brave.Browser",
         ],
         bundleIDPrefixes: ["com.google.Chrome.app.", "com.microsoft.edgemac.app."],
-        // 通話中のタブは "Meet – abc-defg-hij"。"Google Meet ヘルプ" のような
-        // 単に Meet を含むだけのページを拾わないよう、先頭一致にしている。
+        // A tab in a call reads "Meet - abc-defg-hij". Anchor at the start so pages that merely
+        // contain the word, such as a Google Meet help article, are not picked up.
         defaultTitlePatterns: ["^Meet\\s*[-–—]", "^Meet$"],
         defaultShortcut: "cmd+d",
         needsFocus: true,
-        // Meet はページ内のボタン。Chromium の AX 生成を有効にしないと届かない
+        // Meet's control lives inside the page; unreachable unless Chromium's AX generation is enabled
         muteHints: MuteHints.standard(searchWebArea: true)
     )
 
-    /// 新 Teams（com.microsoft.teams2）。グローバルショートカットがないため前面化が要る。
+    /// New Teams (com.microsoft.teams2). It has no global shortcut, so focusing is required.
     static let teams = MeetingProfile(
         id: "teams",
         displayName: "Microsoft Teams",
@@ -80,13 +80,13 @@ struct MeetingProfile {
         defaultTitlePatterns: ["Meeting", "会議", "ミーティング"],
         defaultShortcut: "cmd+shift+m",
         needsFocus: true,
-        // 新 Teams は web シェル。ボタンは depth 20 付近にある
+        // New Teams is a web shell. Its button sits around depth 20
         muteHints: MuteHints.standard(searchWebArea: true)
     )
 }
 
-/// 正規表現のコンパイル結果を使い回すためのキャッシュ。
-/// detect() はキー押下のたびに走るので、毎回 NSRegularExpression を作らない。
+/// Cache of compiled regexes.
+/// detect() runs on every key press, so NSRegularExpression is not rebuilt each time.
 enum TitleMatcher {
     private static var cache: [String: NSRegularExpression] = [:]
     private static let lock = NSLock()
@@ -95,7 +95,7 @@ enum TitleMatcher {
         guard !title.isEmpty else { return false }
         for pattern in patterns where !pattern.isEmpty {
             guard let regex = regex(for: pattern) else {
-                // 正規表現として壊れている場合はただの部分一致として扱う
+                // Treat a pattern that fails to compile as a plain substring match
                 if title.localizedCaseInsensitiveContains(pattern) { return true }
                 continue
             }

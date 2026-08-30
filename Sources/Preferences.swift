@@ -1,14 +1,14 @@
 import Cocoa
 import ServiceManagement
 
-/// アプリごとの可変設定。検出パターンは環境差が大きいのでユーザーが直せるようにする。
+/// Per-app settings. Detection patterns vary a lot by environment, so users can edit them.
 struct ProfileSettings: Codable, Equatable {
     var enabled: Bool
     var titlePatterns: [String]
     var shortcut: String
 }
 
-/// UserDefaults に載る設定一式。全体で 1 インスタンス。
+/// Everything stored in UserDefaults. One instance for the whole app.
 final class Preferences {
     static let shared = Preferences()
 
@@ -43,7 +43,7 @@ final class Preferences {
         NotificationCenter.default.post(name: Preferences.didChangeNotification, object: nil)
     }
 
-    // MARK: - アプリごとの設定
+    // MARK: - Per-app settings
 
     private var storedProfiles: [String: ProfileSettings] {
         get {
@@ -84,7 +84,7 @@ final class Preferences {
             ?? Shortcut(profile.defaultShortcut)!
     }
 
-    /// priorityOrder の順に並べた、有効なプロファイル。
+    /// Enabled profiles, ordered by priorityOrder.
     var activeProfiles: [MeetingProfile] {
         let order = priorityOrder
         return MeetingProfile.all
@@ -96,14 +96,14 @@ final class Preferences {
             }
     }
 
-    // MARK: - 全体設定
+    // MARK: - Global settings
 
     var priorityOrder: [String] {
         get { defaults.stringArray(forKey: Key.priorityOrder) ?? ["zoom", "meet", "teams"] }
         set { defaults.set(newValue, forKey: Key.priorityOrder); notifyChange() }
     }
 
-    /// 前面化してからキーを送るまでの待ち時間。マシンの負荷で足りなくなるので可変。
+    /// How long to wait after focusing before sending the key. Machine load can make it too short, so it is adjustable.
     var focusDelayMs: Int {
         get { min(400, max(50, defaults.integer(forKey: Key.focusDelayMs))) }
         set { defaults.set(min(400, max(50, newValue)), forKey: Key.focusDelayMs); notifyChange() }
@@ -116,19 +116,19 @@ final class Preferences {
         set { defaults.set(newValue, forKey: Key.showToast); notifyChange() }
     }
 
-    /// true にすると「マイクが使用中」のときだけ会議中と判定する。誤検出が多い環境向け。
+    /// When true, only treat it as a meeting while the mic is in use. For environments with false positives.
     var requireMicActive: Bool {
         get { defaults.bool(forKey: Key.requireMicActive) }
         set { defaults.set(newValue, forKey: Key.requireMicActive); notifyChange() }
     }
 
-    /// 別 Space / 最小化されたウィンドウを拾うため CGWindowList のタイトルも使う（画面収録権限が要る）。
+    /// Also use CGWindowList titles, so windows on another Space or minimized are found (needs Screen Recording).
     var useWindowServerTitles: Bool {
         get { defaults.bool(forKey: Key.useWindowServerTitles) }
         set { defaults.set(newValue, forKey: Key.useWindowServerTitles); notifyChange() }
     }
 
-    /// ブラウザで Meet が非アクティブタブにいるとき、タブを切り替えてからキーを送る。
+    /// When Meet sits in a background browser tab, switch to that tab before sending the key.
     var switchBrowserTab: Bool {
         get { defaults.bool(forKey: Key.switchBrowserTab) }
         set { defaults.set(newValue, forKey: Key.switchBrowserTab); notifyChange() }
@@ -139,7 +139,7 @@ final class Preferences {
         set { defaults.set(newValue, forKey: Key.paused); notifyChange() }
     }
 
-    // MARK: - ログイン時に起動
+    // MARK: - Launch at login
 
     var launchAtLogin: Bool {
         get { SMAppService.mainApp.status == .enabled }

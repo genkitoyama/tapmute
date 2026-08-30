@@ -1,0 +1,25 @@
+name: build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Show toolchain
+        run: swiftc --version
+
+      # No signing identity exists on the runner, so the Makefile falls back to
+      # ad-hoc signing. That is fine here: this job only checks that it builds.
+      - name: Build
+        run: make
+
+      - name: Mute-marker regression check
+        run: |
+          make build/probe
+          ./build/probe --probe-mute-markers

@@ -1,21 +1,21 @@
 import Cocoa
 
-/// キーウィンドウにならないパネル。
-/// キーウィンドウになると Meet / Teams のフォーカス往復を壊すので、ここは譲れない。
+/// A panel that never becomes the key window.
+/// Becoming key would break the Meet / Teams focus round trip, so this is non-negotiable.
 private final class ToastPanel: NSPanel {
     override var canBecomeKey: Bool { false }
     override var canBecomeMain: Bool { false }
 }
 
-/// メニューバーの常駐 UI。
+/// The menu bar UI.
 ///
-/// アイコンは「ミュート状態」ではなく「いま検出できている相手」を表す。
-/// Zoom / Meet の実際のミュート状態を確実に読む手段を持たない以上、
-/// 状態を表示すると必ず嘘をつく瞬間ができるため。
+/// The icon shows the current mute state, read through accessibility. When it cannot be read,
+/// the plain shape is shown and the menu says the state is unknown, because displaying a
+/// state that cannot be verified would be a lie.
 final class StatusBarController: NSObject {
 
-    /// メニューを開く直前に表示内容を作り直すためのフック。
-    /// 3 秒タイマーの更新を待たずに、開いた瞬間の状態を出す。
+    /// Hook to rebuild what is shown right before the menu opens.
+    /// Shows the state at that moment instead of waiting for the 3 second timer.
     var onMenuWillOpen: (() -> Void)?
     var onTogglePause: (() -> Void)?
     var onOpenSettings: (() -> Void)?
@@ -23,11 +23,11 @@ final class StatusBarController: NSObject {
     var onOpenPermissions: (() -> Void)?
     var onAbout: (() -> Void)?
 
-    /// アイコンは「いまボタンを押すと何が起きるか」を表す。
-    /// ミュート状態そのものは外部から確実に読めないので表示しない。
+    /// Symbols used in the menu bar. The earbud shape is the app's identity; a slash means muted
+    /// and a dimmed version means no meeting is detected.
     private enum Symbol {
-        /// 片耳のイヤホン。両耳版より輪郭が単純で、メニューバーの小ささでも斜線が潰れない。
-        /// 環境に無ければ両耳版へ落とす。
+        /// A single earbud. Its outline is simpler than the pair, so the slash stays legible at menu bar size.
+        /// Falls back to the pair when the symbol is unavailable.
         static let earbudCandidates = ["airpod.right", "earbuds", "headphones"]
         static let paused = "pause.circle"
         static let needsPermission = "exclamationmark.triangle.fill"
@@ -81,7 +81,7 @@ final class StatusBarController: NSObject {
     @objc private func openPermissions() { onOpenPermissions?() }
     @objc private func about() { onAbout?() }
 
-    // MARK: - 表示の更新
+    // MARK: - Updating what is shown
 
     func update(target: MeetingTarget?, muteState: MuteState, micActive: Bool, paused: Bool, permissionsOK: Bool) {
         pauseMenuItem.title = paused ? "再開" : "一時停止"
@@ -114,7 +114,7 @@ final class StatusBarController: NSObject {
             applyEarbuds(slashed: false, dimmed: false,
                          tooltip: "MeetMute: \(target.displayName) ミュート解除中（押すとミュート）")
         case .unknown:
-            // 状態が読めないときは状態を表示しない。読めないものを表示すると嘘になる。
+            // Do not show a state that could not be read. Showing it anyway would be a lie.
             statusMenuItem.title = "\(target.displayName): 検出中（状態不明） — \(target.matchedTitle)"
             applyEarbuds(slashed: false, dimmed: false,
                          tooltip: "MeetMute: \(target.displayName) を検出中（ミュート状態は読めていません）")
@@ -128,9 +128,9 @@ final class StatusBarController: NSObject {
         button.appearsDisabled = dimmed
     }
 
-    /// SF Symbols に earbuds の斜線版がないので合成する。
-    /// SF Symbols 自身の slash と同じく、線の周囲を一度くり抜いてから線を引くことで、
-    /// 元の形に重なっても斜線が読み取れるようにする。
+    /// SF Symbols has no slashed variant of the earbud, so it is composed here.
+    /// Like the slash in SF Symbols itself, a gap is punched around the line before the line is
+    /// drawn, so the slash stays readable on top of the shape.
     private static var iconCache: [Bool: NSImage] = [:]
 
     private static func earbudsImage(slashed: Bool) -> NSImage? {
@@ -180,11 +180,11 @@ final class StatusBarController: NSObject {
         image?.isTemplate = true
         button.image = image
         button.toolTip = tooltip
-        // 待機中は薄く。同じ形のまま濃淡だけで状態が分かる。
+        // Dim while idle. The same shape carries the state through contrast alone.
         button.appearsDisabled = dimmed
     }
 
-    // MARK: - トースト
+    // MARK: - Toast
 
     func showToast(_ text: String) {
         guard Preferences.shared.showToast else { return }

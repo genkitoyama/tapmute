@@ -1,7 +1,7 @@
 import Cocoa
 import ApplicationServices
 
-/// 見つけたウィンドウ 1 つぶん。AX 要素が取れない経路（WindowServer 由来）ではタイトルだけになる。
+/// One window that was found. Sources without an AX element (the WindowServer) carry only a title.
 struct WindowInfo {
     enum Source: String {
         case axWindowList   // kAXWindows。現在の Space にあるウィンドウしか返らない
@@ -14,17 +14,17 @@ struct WindowInfo {
     let source: Source
 }
 
-/// AX API と WindowServer の薄いラッパー。
+/// Thin wrappers over the accessibility API and the WindowServer.
 ///
-/// 実機で確認した重要な性質:
-///   - kAXWindowsAttribute は「現在の Space にあるウィンドウ」しか返さない。会議を別デスクトップに
-///     置いていると 0 件になるため、これだけに頼ると検出が沈黙する。
-///   - kAXMainWindow / kAXFocusedWindow は別 Space のアプリでもタイトルが取れる。
-///   - CGWindowList は全 Space を横断できるが、タイトル取得に画面収録権限が要る。
-/// この 3 経路を束ねて 1 つのリストにするのが windows(for:) の役目。
+/// Properties measured on real hardware:
+///   - kAXWindowsAttribute only returns windows on the current Space. With the meeting on
+///     another desktop it returns nothing, so relying on it alone makes detection go silent.
+///   - kAXMainWindow / kAXFocusedWindow still return a title for apps on another Space.
+///   - CGWindowList spans every Space, but reading titles requires Screen Recording.
+/// Combining those three into one list is what windows(for:) is for.
 enum AccessibilityHelper {
 
-    // MARK: - 汎用アクセサ
+    // MARK: - Generic accessors
 
     static func attribute(_ element: AXUIElement, _ name: String) -> CFTypeRef? {
         var value: CFTypeRef?
@@ -54,14 +54,14 @@ enum AccessibilityHelper {
         string(element, kAXTitleAttribute as String) ?? ""
     }
 
-    // MARK: - ウィンドウの列挙
+    // MARK: - Enumerating windows
 
     static func windows(for app: NSRunningApplication, includeWindowServer: Bool) -> [WindowInfo] {
         var byTitle: [String: WindowInfo] = [:]
         var order: [String] = []
 
-        /// 同じ題名が複数の経路から来る。AX 要素を持つものを優先して残す
-        /// （前面化やタブ操作に要素が要るため）。
+        /// The same title arrives from several sources. Keep the one carrying an AX element,
+        /// since focusing and tab switching need it.
         func add(_ rawTitle: String, _ element: AXUIElement?, _ source: WindowInfo.Source) {
             let title = rawTitle.trimmingCharacters(in: .whitespacesAndNewlines)
             guard !title.isEmpty else { return }
@@ -72,13 +72,13 @@ enum AccessibilityHelper {
 
         let axApp = AXUIElementCreateApplication(app.processIdentifier)
 
-        // 1) 現在の Space にあるウィンドウ
+        // 1) Windows on the current Space
         for window in (attribute(axApp, kAXWindowsAttribute as String) as? [AXUIElement]) ?? [] {
             if bool(window, kAXMinimizedAttribute as String) == true { continue }
             add(title(window), window, .axWindowList)
         }
 
-        // 2) 別 Space にいても取れるメイン / フォーカスウィンドウ
+        // 2) Main / focused window, readable even on another Space
         for key in [kAXMainWindowAttribute, kAXFocusedWindowAttribute] {
             guard let value = attribute(axApp, key as String) else { continue }
             let window = value as! AXUIElement
@@ -86,7 +86,7 @@ enum AccessibilityHelper {
             add(title(window), window, .axMainWindow)
         }
 
-        // 3) 全 Space を横断できるが AX 要素は伴わない
+        // 3) Spans every Space, but carries no AX element
         if includeWindowServer {
             for title in windowServerTitles(pid: app.processIdentifier) {
                 add(title, nil, .windowServer)
@@ -96,8 +96,8 @@ enum AccessibilityHelper {
         return order.compactMap { byTitle[$0] }
     }
 
-    /// CGWindowList から、そのプロセスが持つウィンドウ名を拾う。
-    /// 画面収録権限がない場合は名前が空で返るため、結果は自然に空になる。
+    /// Collect the window names owned by a process from CGWindowList.
+    /// Without Screen Recording the names come back empty, so the result is naturally empty.
     static func windowServerTitles(pid: pid_t) -> [String] {
         let options: CGWindowListOption = [.optionAll, .excludeDesktopElements]
         guard let list = CGWindowListCopyWindowInfo(options, kCGNullWindowID) as? [[String: Any]] else { return [] }
@@ -111,8 +111,8 @@ enum AccessibilityHelper {
         }
     }
 
-    /// 画面収録権限があるか（= 他プロセスのウィンドウ名が読めるか）を実測する。
-    /// API で直接聞けないので、自分以外のウィンドウ名が 1 つでも取れるかで判定する。
+    /// Measure whether Screen Recording is granted (= other processes' window names are readable).
+    /// There is no API to ask directly, so check whether any name outside this process can be read.
     static func canReadWindowServerTitles() -> Bool {
         let myPID = ProcessInfo.processInfo.processIdentifier
         let options: CGWindowListOption = [.optionAll, .excludeDesktopElements]
@@ -125,13 +125,13 @@ enum AccessibilityHelper {
         }
     }
 
-    // MARK: - タブの探索
+    // MARK: - Finding tabs
 
-    /// ウィンドウの中から、タイトルが patterns に一致し AXPress を持つ要素（＝タブ）を探す。
+    /// Find an element inside a window whose title matches patterns and that supports AXPress (a tab).
     ///
-    /// Chrome 系は AXTabGroup > AXRadioButton、Dia は AXUnknown + AXPress と構造が違うので、
-    /// ロールではなく「押せること」と「タイトルが一致すること」で拾う。
-    /// AXWebArea 以下はページ本体なので降りない（DOM 全走査を避ける）。
+    /// Chrome exposes AXTabGroup > AXRadioButton while Dia uses AXUnknown with AXPress, so the
+    /// structures differ. Match on "is pressable" and "the title matches" rather than on role.
+    /// Do not descend into AXWebArea: that is page content, and walking the whole DOM is wasteful.
     static func findPressableTab(in window: AXUIElement, matching patterns: [String]) -> AXUIElement? {
         var visited = 0
         func walk(_ element: AXUIElement, depth: Int) -> AXUIElement? {
@@ -157,7 +157,7 @@ enum AccessibilityHelper {
         return walk(window, depth: 0)
     }
 
-    // MARK: - 操作
+    // MARK: - Actions
 
     static func press(_ element: AXUIElement) {
         AXUIElementPerformAction(element, kAXPressAction as CFString)

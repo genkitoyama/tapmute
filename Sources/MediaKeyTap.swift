@@ -1,9 +1,9 @@
 import Cocoa
 
-/// EarPods の中央ボタン（= メディアキーの再生/一時停止）を横取りする。
+/// Intercepts the EarPods center button (the play/pause media key).
 ///
-/// メディアキーは OS 全体で共有される資源なので、常時奪うと音楽の操作ができなくなる。
-/// onPlayPause が true を返したときだけイベントを消費し、false なら下流にそのまま流す。
+/// The media key is a system-wide resource: taking it permanently would break music control.
+/// The event is consumed only when onPlayPause returns true; otherwise it is passed downstream.
 final class MediaKeyTap {
 
     enum Failure: Error, LocalizedError {
@@ -14,13 +14,13 @@ final class MediaKeyTap {
         }
     }
 
-    /// true を返すとイベントを消費、false で下流（音楽アプリ）に流す。
+    /// Return true to consume the event, false to pass it downstream to the music app.
     var onPlayPause: (() -> Bool)?
 
     private var tap: CFMachPort?
     private var runLoopSource: CFRunLoopSource?
-    /// キーダウンを消費したら、対になるキーアップも消費する。
-    /// ダウンだけ消してアップを流すと下流のアプリが状態不整合を起こす。
+    /// Once a key down is consumed, the matching key up must be consumed too.
+    /// Dropping only the down leaves downstream apps in an inconsistent state.
     private var swallowingUp = false
 
     private static let systemDefinedEventType: UInt32 = 14  // NX_SYSDEFINED
@@ -38,7 +38,7 @@ final class MediaKeyTap {
         let mask = CGEventMask(1 << MediaKeyTap.systemDefinedEventType)
         let refcon = Unmanaged.passUnretained(self).toOpaque()
 
-        // .listenOnly ではイベントを消費できず、ミュートと同時に音楽が再生されてしまう。
+        // .listenOnly cannot consume events, which would mute and start the music at the same time.
         guard let tap = CGEvent.tapCreate(
             tap: .cgSessionEventTap,
             place: .headInsertEventTap,
@@ -71,7 +71,7 @@ final class MediaKeyTap {
         swallowingUp = false
     }
 
-    /// タップは処理が遅いと OS に無効化される。放置すると数日で沈黙するので必ず復帰させる。
+    /// The OS disables the tap when the callback is slow. Without re-enabling it the app goes silent after a few days.
     private func reenable() {
         guard let tap else { return }
         CGEvent.tapEnable(tap: tap, enable: true)
@@ -101,7 +101,7 @@ final class MediaKeyTap {
         let isRepeat = (keyFlags & 0x1) == 1
 
         if !isDown {
-            // ダウンを消費していたらアップも対で消費する
+            // Consume the up as a pair when the down was consumed
             let swallow = swallowingUp
             swallowingUp = false
             return swallow ? nil : passThrough
@@ -117,7 +117,7 @@ final class MediaKeyTap {
     }
 }
 
-/// C 関数ポインタなのでキャプチャできない。refcon 経由でインスタンスに戻す。
+/// A C function pointer cannot capture context, so the instance is recovered through refcon.
 private let mediaKeyTapCallback: CGEventTapCallBack = { _, type, event, refcon in
     guard let refcon else { return Unmanaged.passUnretained(event) }
     let tap = Unmanaged<MediaKeyTap>.fromOpaque(refcon).takeUnretainedValue()
