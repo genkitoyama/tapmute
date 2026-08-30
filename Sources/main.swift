@@ -25,8 +25,8 @@ if arguments.contains("--probe-mute-markers") {
     let fixtures: [(app: String, text: String, isControl: Bool, expected: MuteState?)] = [
         ("Zoom",  "自分のオーディオをミュート解除する", true, .muted),
         ("Zoom",  "自分のオーディオをミュートする", true, .unmuted),
-        ("Zoom",  "Genki, ミュートされたコンピュータ オーディオ", false, .muted),
-        ("Zoom",  "Genki, ミュート解除されたコンピュータ オーディオ", false, .unmuted),
+        ("Zoom",  "参加者名, ミュートされたコンピュータ オーディオ", false, .muted),
+        ("Zoom",  "参加者名, ミュート解除されたコンピュータ オーディオ", false, .unmuted),
         ("Teams", "マイクのミュートを解除", true, .muted),
         ("Teams", "マイクのミュート", true, .unmuted),
         // 動画タイルの説明は状態を断定できないので、判定に使ってはいけない

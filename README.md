@@ -8,6 +8,23 @@ EarPods の中央ボタン（再生/一時停止）で **Zoom / Google Meet / Mi
 
 ---
 
+## 通信しない
+
+ネットワーク通信を一切しない。通信 API はコード中に 1 箇所も無く、次で確認できる。
+
+```sh
+git grep -n -E "URLSession|NSURLConnection|Network\.|socket|http" -- Sources
+```
+
+（システム設定を開く `x-apple.systempreferences:` の URL 以外は何も出ない。）
+
+読み取った情報（ウィンドウ題名、ミュート状態）はメニューバーの表示に使うだけで、保存も送信もしない。
+唯一ファイルに書き出すのはメニューの「ウィンドウ一覧をログ出力」で、これはユーザーが明示的に
+実行したときだけ一時ファイルとクリップボードに出す。
+
+アクセシビリティ・入力監視・画面収録という強い権限を要求するアプリなので、
+何をしていないかをここに明記しておく。
+
 ## 動作
 
 ```
@@ -131,7 +148,7 @@ Zoom → 設定 → キーボードショートカット → 「ミュート/ミ
 | 署名 | designated requirement | 再ビルド後 |
 |---|---|---|
 | アドホック（`-`） | `cdhash H"114f…"` | **毎回リセット**。1 行直しただけで別アプリ扱いになる |
-| Developer ID / Apple Development | `identifier "com.example.meetmute" and … certificate leaf[subject.OU] = <TeamID>` | **維持される** |
+| Developer ID / Apple Development | `identifier "io.github.genkitoyama.meetmute" and … certificate leaf[subject.OU] = <TeamID>` | **維持される** |
 
 Makefile は `security find-identity -v -p codesigning` から Developer ID / Apple Development の
 署名 ID を自動で拾って使う。証明書が 1 つもない環境ではアドホックに落ちる。
@@ -145,7 +162,7 @@ make install SIGN_IDENTITY="Apple Development: ..."   # 明示指定
 そのときだけ権限を付け直す。古いエントリが残っていると無言で拒否されるため、リセットしてから許可する。
 
 ```sh
-for s in Accessibility ListenEvent ScreenCapture; do tccutil reset $s com.example.meetmute; done
+for s in Accessibility ListenEvent ScreenCapture; do tccutil reset $s io.github.genkitoyama.meetmute; done
 ```
 
 ## 検出がうまくいかないとき
@@ -210,3 +227,19 @@ Sources/
   Preferences.swift        設定の永続化
   Shortcut.swift           "cmd+shift+a" ↔ キーコードの変換と送出
 ```
+
+## 動作確認環境
+
+macOS 26.5 / Apple Silicon で、以下を実機で確認している。
+
+| 項目 | 状態 |
+|---|---|
+| Zoom (`us.zoom.xos`) | 検出・ミュート切替・状態表示 |
+| Google Meet（Dia / Chrome のタブ） | 検出・ミュート切替・状態表示 |
+| Microsoft Teams (`com.microsoft.teams2`) | 検出・ミュート切替・状態表示 |
+| 会議外でのメディアキー素通し | 音楽アプリが通常どおり反応する |
+| 会議中の Music 抑止 | Now Playing の座を奪って阻止 |
+| 別デスクトップ（Space）の会議検出 | CGWindowList 経由で検出 |
+| 再ビルド後の権限維持 | 安定した署名 ID で維持される |
+
+UI 文言は日本語・英語の両方に対応している（Zoom は日本語 UI、Meet は英語 UI で実測）。

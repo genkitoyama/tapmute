@@ -1,5 +1,5 @@
 APP          := MeetMute
-BUNDLE_ID    := com.example.meetmute
+BUNDLE_ID    := io.github.genkitoyama.meetmute
 BUILD_DIR    := build
 APP_BUNDLE   := $(BUILD_DIR)/$(APP).app
 MACOS_DIR    := $(APP_BUNDLE)/Contents/MacOS
