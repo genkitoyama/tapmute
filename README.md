@@ -10,6 +10,9 @@ the button keeps working as ordinary play/pause for your music.
 
 ![Menu bar states](docs/menubar-states.png)
 
+Where the original design assumptions turned out to be wrong on real hardware, and what was
+rebuilt because of it, is recorded in [実測メモと設計判断](docs/findings.ja.md) (Japanese).
+
 ## How it works
 
 ```

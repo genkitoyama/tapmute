@@ -10,6 +10,9 @@ EarPods の中央ボタン（再生/一時停止）で **Zoom / Google Meet / Mi
 
 ![メニューバーの 3 状態](docs/menubar-states.png)
 
+設計書の前提が実機と食い違った点と、それをどう作り直したかは
+[実測メモと設計判断](docs/findings.ja.md)にまとめてある。
+
 ---
 
 ## 通信しない
