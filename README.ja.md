@@ -111,6 +111,29 @@ Chromium 系（Chrome / Dia / Arc / Edge）は**ページ内容の AX ツリー�
 - Meet は**非アクティブタブでも検出する**。タブを一瞬切り替えて ⌘D を送り、元のタブと元のアプリに戻す。
 - 検出パターンは Zoom / Teams のバージョンと言語設定で変わる。**設定画面から編集できる**。
 
+## オーディオデバイスの自動切り替え
+
+名前が一致するデバイスが現れたら、それをシステムの入力と出力にする。
+macOS は USB ヘッドセットを挿すと**出力は自動で切り替えるが、入力は内蔵マイクのまま残す**
+ことが多いので、そこを埋める。
+
+**直前に無かったデバイスだけ**を対象にするので、手で選び直した設定を上書きしない。
+名前は正規表現で照合し、設定画面から編集できる（既定は `EarPods`）。
+
+挿した状態で、何が対象になるかを確認できる。
+
+```sh
+./build/probe --probe-audio
+```
+
+### 有線版と USB-C 版の EarPods
+
+このアプリから見ると両者は同じはず。3.5mm 版はジャック側の回路がボタンを解釈し、
+USB-C 版は HID Consumer Control を送るが、macOS はどちらも同じ `NX_SYSDEFINED` の
+メディアキーに変換する。アプリが見ているのはその変換後のイベントだけ。
+ただし実機で確認できているのは 3.5mm 版のみ。`make probe-keys` を実行して中央ボタンを押せば、
+どんなヘッドセットでも数秒で確かめられる。
+
 ## 必要な権限
 
 | 権限 | 要否 | 用途 |
@@ -181,6 +204,7 @@ for s in Accessibility ListenEvent ScreenCapture; do tccutil reset $s io.github.
 make probe-windows                    # 検出結果と全ウィンドウ題名を出す
 make probe-keys                       # メディアキーが届いているかだけを見る
 ./build/probe --probe-mute-markers    # ミュート判定の文言テスト
+./build/probe --probe-audio           # オーディオデバイス一覧と切り替え対象
 ```
 
 `probe-*` はターミナル自身の権限で動くので、アプリに権限を与える前の切り分けに使える。
@@ -224,6 +248,8 @@ Sources/
   MuteController.swift     ミュート操作の実行（前面化の往復を含む）
   AccessibilityHelper.swift AX と WindowServer のラッパー（3 経路の統合）
   MicMonitor.swift         入力デバイスの稼働状態（CoreAudio）
+  AudioDevices.swift       CoreAudio のデバイス一覧と既定デバイス
+  AudioDeviceSwitcher.swift 一致するデバイスが挿されたら入出力を切り替える
   StatusBarController.swift メニューバー UI とトースト
   PermissionManager.swift  権限の確認と誘導
   OnboardingWindow.swift   初回セットアップ画面

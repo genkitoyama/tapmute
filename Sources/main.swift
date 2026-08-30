@@ -6,7 +6,7 @@ let arguments = CommandLine.arguments
 
 // Probe output is usually read through a pipe, so flush it line by line
 if arguments.contains("--probe-keys") || arguments.contains("--probe-windows")
-    || arguments.contains("--probe-mute-markers") {
+    || arguments.contains("--probe-mute-markers") || arguments.contains("--probe-audio") {
     setvbuf(stdout, nil, _IOLBF, 0)
 }
 
@@ -54,6 +54,28 @@ if arguments.contains("--probe-mute-markers") {
     }
     print(failures == 0 ? "\n全 \(fixtures.count) 件一致" : "\n\(failures) 件が不一致")
     exit(failures == 0 ? 0 : 1)
+}
+
+if arguments.contains("--probe-audio") {
+    // Shows which audio devices the auto-switch would react to.
+    // Run it with the headset plugged in to check the name patterns.
+    let patterns = Preferences.shared.audioDevicePatterns
+    print("Auto-switch: \(Preferences.shared.autoSwitchAudioDevice ? "on" : "off")")
+    print("Patterns: \(patterns.joined(separator: ", "))")
+    print("")
+    let current = (
+        input: AudioDevices.defaultDevice(.input),
+        output: AudioDevices.defaultDevice(.output)
+    )
+    for device in AudioDevices.all() {
+        var marks: [String] = []
+        if device.id == current.input { marks.append("default input") }
+        if device.id == current.output { marks.append("default output") }
+        if TitleMatcher.matches(title: device.name, patterns: patterns) { marks.append("MATCHES") }
+        print("\(device.name)  in=\(device.inputChannels) out=\(device.outputChannels)"
+              + (marks.isEmpty ? "" : "  [\(marks.joined(separator: ", "))]"))
+    }
+    exit(0)
 }
 
 if arguments.contains("--probe-keys") {

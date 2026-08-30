@@ -25,6 +25,8 @@ final class Preferences {
         static let useWindowServerTitles = "useWindowServerTitles"
         static let switchBrowserTab = "switchBrowserTab"
         static let paused = "paused"
+        static let autoSwitchAudioDevice = "autoSwitchAudioDevice"
+        static let audioDevicePatterns = "audioDevicePatterns"
     }
 
     private init() {
@@ -36,6 +38,8 @@ final class Preferences {
             Key.useWindowServerTitles: true,
             Key.switchBrowserTab: true,
             Key.paused: false,
+            Key.autoSwitchAudioDevice: true,
+            Key.audioDevicePatterns: ["EarPods"],
         ])
     }
 
@@ -132,6 +136,18 @@ final class Preferences {
     var switchBrowserTab: Bool {
         get { defaults.bool(forKey: Key.switchBrowserTab) }
         set { defaults.set(newValue, forKey: Key.switchBrowserTab); notifyChange() }
+    }
+
+    /// Make a matching device the system input and output as soon as it is plugged in.
+    var autoSwitchAudioDevice: Bool {
+        get { defaults.bool(forKey: Key.autoSwitchAudioDevice) }
+        set { defaults.set(newValue, forKey: Key.autoSwitchAudioDevice); notifyChange() }
+    }
+
+    /// Device names to switch to, as regexes. Editable so another headset can be added.
+    var audioDevicePatterns: [String] {
+        get { defaults.stringArray(forKey: Key.audioDevicePatterns) ?? ["EarPods"] }
+        set { defaults.set(newValue, forKey: Key.audioDevicePatterns); notifyChange() }
     }
 
     var paused: Bool {

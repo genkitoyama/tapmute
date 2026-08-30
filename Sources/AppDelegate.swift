@@ -6,6 +6,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let muteController = MuteController()
     private let mediaKeyTap = MediaKeyTap()
     private let nowPlayingShield = NowPlayingShield()
+    private let audioSwitcher = AudioDeviceSwitcher()
     private var statusBar: StatusBarController!
     private let settingsWindow = SettingsWindowController()
     private let onboardingWindow = OnboardingWindowController()
@@ -35,6 +36,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         mediaKeyTap.onPlayPause = { [weak self] in self?.handlePlayPause() ?? false }
         startTap()
 
+        audioSwitcher.onSwitched = { [weak self] name in
+            self?.statusBar.showToast("\(name) に切り替えました")
+        }
+        audioSwitcher.start()
+
         NotificationCenter.default.addObserver(
             self, selector: #selector(preferencesChanged),
             name: Preferences.didChangeNotification, object: nil)
@@ -54,6 +60,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationWillTerminate(_ notification: Notification) {
         mediaKeyTap.stop()
         nowPlayingShield.deactivate()
+        audioSwitcher.stop()
         detector.stop()
     }
 

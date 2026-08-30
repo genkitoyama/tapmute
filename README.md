@@ -97,6 +97,28 @@ useful hint for "a call is in progress", but not for mute state.
   then the previous tab and the previously active app are restored.
 - Title patterns vary by app version and UI language, so they are **editable in Settings**.
 
+## Switching audio devices automatically
+
+When a device whose name matches appears, MeetMute makes it the system input and output.
+macOS usually switches the *output* to a newly connected USB headset on its own but leaves the
+*input* on the built-in microphone; this closes that gap.
+
+Only devices that were absent a moment earlier are acted on, so a device you picked by hand is
+never overridden. Names are matched as regexes and edited in Settings (default: `EarPods`).
+
+With the headset plugged in, check what would match:
+
+```sh
+./build/probe --probe-audio
+```
+
+### Wired and USB-C EarPods
+
+Both should behave identically here. The 3.5 mm button is decoded by the jack circuitry, while
+USB-C EarPods send HID consumer-control usages; macOS turns both into the same `NX_SYSDEFINED`
+media key, which is all this app looks at. Only the 3.5 mm variant has been verified on real
+hardware so far — `make probe-keys` confirms any headset in a few seconds.
+
 ## Permissions
 
 | Permission | Required | Used for |
@@ -191,6 +213,7 @@ which is useful before granting anything to the app itself:
 make probe-windows                    # detection result and every window title
 make probe-keys                       # whether the media key arrives at all
 ./build/probe --probe-mute-markers    # mute-label classification test
+./build/probe --probe-audio           # audio devices and which ones would be switched to
 ```
 
 ### False positives (the button does nothing outside a meeting)
@@ -237,6 +260,8 @@ Sources/
   MuteStateReader.swift     reading the current mute state from accessibility
   AccessibilityHelper.swift accessibility and WindowServer wrappers (the three sources)
   MicMonitor.swift          input device activity (CoreAudio)
+  AudioDevices.swift        CoreAudio device list and system default devices
+  AudioDeviceSwitcher.swift switches input/output when a matching device appears
   StatusBarController.swift menu bar UI and toast
   PermissionManager.swift   permission checks and guidance
   OnboardingWindow.swift    setup window

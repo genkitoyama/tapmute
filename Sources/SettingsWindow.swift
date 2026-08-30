@@ -21,6 +21,15 @@ final class SettingsModel: ObservableObject {
     @Published var useWindowServerTitles: Bool { didSet { Preferences.shared.useWindowServerTitles = useWindowServerTitles } }
     @Published var switchBrowserTab: Bool { didSet { Preferences.shared.switchBrowserTab = switchBrowserTab } }
     @Published var launchAtLogin: Bool { didSet { Preferences.shared.launchAtLogin = launchAtLogin } }
+    @Published var autoSwitchAudioDevice: Bool { didSet { Preferences.shared.autoSwitchAudioDevice = autoSwitchAudioDevice } }
+    @Published var audioDevicePatternsText: String {
+        didSet {
+            Preferences.shared.audioDevicePatterns = audioDevicePatternsText
+                .split(separator: ",")
+                .map { $0.trimmingCharacters(in: .whitespaces) }
+                .filter { !$0.isEmpty }
+        }
+    }
 
     let screenRecordingGranted: Bool
 
@@ -39,6 +48,8 @@ final class SettingsModel: ObservableObject {
         useWindowServerTitles = preferences.useWindowServerTitles
         switchBrowserTab = preferences.switchBrowserTab
         launchAtLogin = preferences.launchAtLogin
+        autoSwitchAudioDevice = preferences.autoSwitchAudioDevice
+        audioDevicePatternsText = preferences.audioDevicePatterns.joined(separator: ", ")
         screenRecordingGranted = PermissionManager.Permission.screenRecording.isGranted
     }
 
@@ -121,6 +132,18 @@ struct SettingsView: View {
 
                 Toggle("マイク使用中のときだけ会議とみなす", isOn: $model.requireMicActive)
                 caption("誤検出（会議中でないのにボタンが効かない）が起きるときに有効化する。")
+
+                Divider()
+
+                Toggle("接続時にオーディオの入出力を自動で切り替える", isOn: $model.autoSwitchAudioDevice)
+                HStack(alignment: .firstTextBaseline) {
+                    Text("対象のデバイス名")
+                    TextField("EarPods", text: $model.audioDevicePatternsText)
+                        .disabled(!model.autoSwitchAudioDevice)
+                    Spacer(minLength: 0)
+                }
+                caption("正規表現・カンマ区切り。挿した直後だけ切り替えるので、手で選び直した設定は上書きしない。"
+                        + "macOS は出力だけ自動で切り替えて入力を内蔵マイクのまま残すことが多いので、そこを埋める。")
 
                 Spacer(minLength: 0)
             }
