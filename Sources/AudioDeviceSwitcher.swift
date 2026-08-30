@@ -13,7 +13,7 @@ final class AudioDeviceSwitcher {
     /// Called on the main thread with the device name after a switch.
     var onSwitched: ((String) -> Void)?
 
-    private let queue = DispatchQueue(label: "io.github.genkitoyama.meetmute.audio")
+    private let queue = DispatchQueue(label: "io.github.genkitoyama.tapmute.audio")
     private var listener: AudioObjectPropertyListenerBlock?
     private var knownUIDs = Set<String>()
 
@@ -65,7 +65,7 @@ final class AudioDeviceSwitcher {
             AudioDevices.setDefault(device.id, role: .systemOutput)
         }
         guard switched else {
-            NSLog("MeetMute: could not switch audio to \(device.name)")
+            NSLog("TapMute: could not switch audio to \(device.name)")
             return
         }
         DispatchQueue.main.async { self.onSwitched?(device.name) }

@@ -3,13 +3,13 @@
 <plist version="1.0">
 <dict>
     <key>CFBundleName</key>
-    <string>MeetMute</string>
+    <string>TapMute</string>
     <key>CFBundleDisplayName</key>
-    <string>MeetMute</string>
+    <string>TapMute</string>
     <key>CFBundleIdentifier</key>
-    <string>io.github.genkitoyama.meetmute</string>
+    <string>io.github.genkitoyama.tapmute</string>
     <key>CFBundleExecutable</key>
-    <string>MeetMute</string>
+    <string>TapMute</string>
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleShortVersionString</key>

@@ -220,7 +220,7 @@ final class SettingsWindowController {
         }
         let hosting = NSHostingController(rootView: SettingsView(model: SettingsModel()))
         let window = NSWindow(contentViewController: hosting)
-        window.title = "MeetMute 設定"
+        window.title = "TapMute 設定"
         window.styleMask = [.titled, .closable]
         window.isReleasedWhenClosed = false
         window.center()

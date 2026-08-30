@@ -30,7 +30,7 @@ final class MeetingDetector {
     /// Called on the main thread when the detected target or the mute state changes.
     var onChange: ((MeetingTarget?) -> Void)?
 
-    private let queue = DispatchQueue(label: "com.meetmute.detector", qos: .userInitiated)
+    private let queue = DispatchQueue(label: "com.tapmute.detector", qos: .userInitiated)
     private var timer: Timer?
     private var scanning = false
     private var windowServerTitlesAvailable = false
@@ -162,7 +162,7 @@ final class MeetingDetector {
     /// The list a user needs in order to check the real titles when detection is not working.
     func debugReport() -> String {
         var lines: [String] = []
-        lines.append("MeetMute ウィンドウ一覧  \(Date())")
+        lines.append("TapMute ウィンドウ一覧  \(Date())")
         lines.append("画面収録によるタイトル取得: \(windowServerTitlesAvailable ? "利用可" : "利用不可")")
         lines.append("マイク使用中: \(MicMonitor.isInputActive())")
         lines.append("")

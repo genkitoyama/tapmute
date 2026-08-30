@@ -75,7 +75,7 @@ final class MediaKeyTap {
     private func reenable() {
         guard let tap else { return }
         CGEvent.tapEnable(tap: tap, enable: true)
-        NSLog("MeetMute: イベントタップが無効化されたため再有効化しました")
+        NSLog("TapMute: イベントタップが無効化されたため再有効化しました")
     }
 
     fileprivate func handle(type: CGEventType, event: CGEvent) -> Unmanaged<CGEvent>? {

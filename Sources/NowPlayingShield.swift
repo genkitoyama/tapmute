@@ -27,13 +27,13 @@ final class NowPlayingShield {
     func activate() {
         guard !isActive else { return }
         guard startSilentPlayback() else {
-            NSLog("MeetMute: 無音再生を開始できず、Now Playing を取得できませんでした")
+            NSLog("TapMute: 無音再生を開始できず、Now Playing を取得できませんでした")
             return
         }
         registerCommands()
 
         MPNowPlayingInfoCenter.default().nowPlayingInfo = [
-            MPMediaItemPropertyTitle: "会議中（MeetMute）",
+            MPMediaItemPropertyTitle: "会議中（TapMute）",
             MPMediaItemPropertyArtist: "EarPods のボタンでミュート",
             MPNowPlayingInfoPropertyPlaybackRate: 1.0,
         ]
@@ -101,7 +101,7 @@ final class NowPlayingShield {
             self.player = player
             return true
         } catch {
-            NSLog("MeetMute: 無音再生の生成に失敗: \(error)")
+            NSLog("TapMute: 無音再生の生成に失敗: \(error)")
             return false
         }
     }

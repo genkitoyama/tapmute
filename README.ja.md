@@ -1,4 +1,4 @@
-# MeetMute
+# TapMute
 
 [English](README.md) | 日本語
 
@@ -37,7 +37,7 @@ EarPods 中央ボタン
 MeetingDetector（3 秒ごとにバックグラウンドで走査。キー押下時はキャッシュを読むだけ）
    ↓
 会議あり ──→ NowPlayingShield が Now Playing の座を掴んでいる
-             → メディアキーは Music ではなく MeetMute に配送される
+             → メディアキーは Music ではなく TapMute に配送される
              → MuteController が Zoom : ⇧⌘A をそのまま送出（グローバルショートカット）
                               Meet / Teams : 前面化 → キー送出 → 元のアプリに復帰
 会議なし ──→ 座を掴まない → 音楽アプリが普通に反応する
@@ -154,13 +154,13 @@ USB-C 版は HID Consumer Control を送るが、macOS はどちらも同じ `NX
 ## ビルドとインストール
 
 ```sh
-make            # build/MeetMute.app を作る
+make            # build/TapMute.app を作る
 make run        # ビルドして起動
 make install    # /Applications へ配置
 make clean
 ```
 
-初回起動でオンボーディング画面が出る。3 つの権限をここから設定して、**MeetMute を再起動**する。
+初回起動でオンボーディング画面が出る。3 つの権限をここから設定して、**TapMute を再起動**する。
 
 ### Zoom 側の設定（必須）
 
@@ -175,7 +175,7 @@ Zoom → 設定 → キーボードショートカット → 「ミュート/ミ
 | 署名 | designated requirement | 再ビルド後 |
 |---|---|---|
 | アドホック（`-`） | `cdhash H"114f…"` | **毎回リセット**。1 行直しただけで別アプリ扱いになる |
-| Developer ID / Apple Development | `identifier "io.github.genkitoyama.meetmute" and … certificate leaf[subject.OU] = <TeamID>` | **維持される** |
+| Developer ID / Apple Development | `identifier "io.github.genkitoyama.tapmute" and … certificate leaf[subject.OU] = <TeamID>` | **維持される** |
 
 Makefile は `security find-identity -v -p codesigning` から Developer ID / Apple Development の
 署名 ID を自動で拾って使う。証明書が 1 つもない環境ではアドホックに落ちる。
@@ -189,7 +189,7 @@ make install SIGN_IDENTITY="Apple Development: ..."   # 明示指定
 そのときだけ権限を付け直す。古いエントリが残っていると無言で拒否されるため、リセットしてから許可する。
 
 ```sh
-for s in Accessibility ListenEvent ScreenCapture; do tccutil reset $s io.github.genkitoyama.meetmute; done
+for s in Accessibility ListenEvent ScreenCapture; do tccutil reset $s io.github.genkitoyama.tapmute; done
 ```
 
 ## 検出がうまくいかないとき

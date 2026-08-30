@@ -62,7 +62,7 @@ final class StatusBarController: NSObject {
         menu.addItem(item("ウィンドウ一覧をログ出力", #selector(dumpWindows)))
         menu.addItem(item("権限を確認…", #selector(openPermissions)))
         menu.addItem(.separator())
-        menu.addItem(item("MeetMute について", #selector(about)))
+        menu.addItem(item("TapMute について", #selector(about)))
         menu.addItem(NSMenuItem(title: "終了", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
 
         menu.delegate = self
@@ -89,18 +89,18 @@ final class StatusBarController: NSObject {
 
         if !permissionsOK {
             statusMenuItem.title = "権限が不足しています"
-            apply(symbol: Symbol.needsPermission, tooltip: "MeetMute: 権限が不足しています")
+            apply(symbol: Symbol.needsPermission, tooltip: "TapMute: 権限が不足しています")
             return
         }
         if paused {
             statusMenuItem.title = "一時停止中"
-            apply(symbol: Symbol.paused, tooltip: "MeetMute: 一時停止中")
+            apply(symbol: Symbol.paused, tooltip: "TapMute: 一時停止中")
             return
         }
         guard let target else {
             statusMenuItem.title = "会議は検出されていません"
             applyEarbuds(slashed: false, dimmed: true,
-                         tooltip: "MeetMute: 会議なし（押すと音楽の再生/停止）")
+                         tooltip: "TapMute: 会議なし（押すと音楽の再生/停止）")
             return
         }
 
@@ -108,16 +108,16 @@ final class StatusBarController: NSObject {
         case .muted:
             statusMenuItem.title = "\(target.displayName): ミュート中 — \(target.matchedTitle)"
             applyEarbuds(slashed: true, dimmed: false,
-                         tooltip: "MeetMute: \(target.displayName) ミュート中（押すと解除）")
+                         tooltip: "TapMute: \(target.displayName) ミュート中（押すと解除）")
         case .unmuted:
             statusMenuItem.title = "\(target.displayName): ミュート解除中 — \(target.matchedTitle)"
             applyEarbuds(slashed: false, dimmed: false,
-                         tooltip: "MeetMute: \(target.displayName) ミュート解除中（押すとミュート）")
+                         tooltip: "TapMute: \(target.displayName) ミュート解除中（押すとミュート）")
         case .unknown:
             // Do not show a state that could not be read. Showing it anyway would be a lie.
             statusMenuItem.title = "\(target.displayName): 検出中（状態不明） — \(target.matchedTitle)"
             applyEarbuds(slashed: false, dimmed: false,
-                         tooltip: "MeetMute: \(target.displayName) を検出中（ミュート状態は読めていません）")
+                         tooltip: "TapMute: \(target.displayName) を検出中（ミュート状態は読めていません）")
         }
     }
 

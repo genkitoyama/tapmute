@@ -107,7 +107,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             tapRetryTimer?.invalidate()
             tapRetryTimer = nil
         } catch {
-            NSLog("MeetMute: \(error.localizedDescription)")
+            NSLog("TapMute: \(error.localizedDescription)")
             scheduleTapRetry()
         }
         updateStatus()
@@ -165,7 +165,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         NSPasteboard.general.setString(report, forType: .string)
 
         let url = FileManager.default.temporaryDirectory
-            .appendingPathComponent("meetmute-windows-\(Int(Date().timeIntervalSince1970)).txt")
+            .appendingPathComponent("tapmute-windows-\(Int(Date().timeIntervalSince1970)).txt")
         try? report.write(to: url, atomically: true, encoding: .utf8)
 
         let alert = NSAlert()
@@ -181,7 +181,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func showAbout() {
         let alert = NSAlert()
-        alert.messageText = "MeetMute"
+        alert.messageText = "TapMute"
         alert.informativeText = """
             EarPods の中央ボタンで Zoom / Google Meet / Microsoft Teams のミュートを切り替えます。
             会議が検出されていないときは、ボタンは通常どおり音楽の再生/停止として働きます。

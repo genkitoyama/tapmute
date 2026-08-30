@@ -12,7 +12,7 @@ struct ProfileSettings: Codable, Equatable {
 final class Preferences {
     static let shared = Preferences()
 
-    static let didChangeNotification = Notification.Name("MeetMutePreferencesDidChange")
+    static let didChangeNotification = Notification.Name("TapMutePreferencesDidChange")
 
     private let defaults = UserDefaults.standard
 
@@ -167,7 +167,7 @@ final class Preferences {
                     try SMAppService.mainApp.unregister()
                 }
             } catch {
-                NSLog("MeetMute: ログイン項目の更新に失敗: \(error)")
+                NSLog("TapMute: ログイン項目の更新に失敗: \(error)")
             }
             notifyChange()
         }

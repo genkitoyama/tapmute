@@ -86,7 +86,7 @@ enum MuteStateReader {
     }
 
     /// Classifies one piece of wording. It has no side effects, so it can be verified on its own
-    /// against wording captured from the real apps (`MeetMute --probe-mute-markers`).
+    /// against wording captured from the real apps (`TapMute --probe-mute-markers`).
     static func classify(text: String, isControl: Bool, hints: MuteHints) -> MuteState? {
         let markers = isControl ? hints.actionMarkers : hints.stateMarkers
         for marker in markers where text.localizedCaseInsensitiveContains(marker.text) {

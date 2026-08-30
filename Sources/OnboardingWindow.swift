@@ -31,7 +31,7 @@ struct OnboardingView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text("MeetMute のセットアップ").font(.title2).bold()
+            Text("TapMute のセットアップ").font(.title2).bold()
             Text("EarPods の中央ボタンで Zoom / Google Meet / Teams のミュートを切り替えます。")
                 .foregroundColor(.secondary)
 
@@ -66,7 +66,7 @@ struct OnboardingView: View {
             }
 
             HStack {
-                Button("MeetMute を再起動") { PermissionManager.relaunch() }
+                Button("TapMute を再起動") { PermissionManager.relaunch() }
                 Spacer()
                 Text("権限を付けた直後は再起動が要ることがあります")
                     .font(.caption).foregroundColor(.secondary)
@@ -88,7 +88,7 @@ final class OnboardingWindowController {
         }
         let hosting = NSHostingController(rootView: OnboardingView(model: OnboardingModel()))
         let window = NSWindow(contentViewController: hosting)
-        window.title = "MeetMute"
+        window.title = "TapMute"
         window.styleMask = [.titled, .closable]
         window.isReleasedWhenClosed = false
         window.center()
