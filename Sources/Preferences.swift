@@ -32,7 +32,7 @@ final class Preferences {
     private init() {
         defaults.register(defaults: [
             Key.focusDelayMs: 120,
-            Key.priorityOrder: ["zoom", "meet", "teams"],
+            Key.priorityOrder: ["zoom", "meet", "teams", "slack"],
             Key.showToast: true,
             Key.requireMicActive: false,
             Key.useWindowServerTitles: true,
@@ -66,7 +66,7 @@ final class Preferences {
     func settings(for profile: MeetingProfile) -> ProfileSettings {
         storedProfiles[profile.id] ?? ProfileSettings(
             enabled: true,
-            titlePatterns: profile.defaultTitlePatterns,
+            titlePatterns: profile.defaultPatterns,
             shortcut: profile.defaultShortcut
         )
     }
@@ -83,9 +83,10 @@ final class Preferences {
         storedProfiles = all
     }
 
-    func shortcut(for profile: MeetingProfile) -> Shortcut {
-        Shortcut(settings(for: profile).shortcut)
-            ?? Shortcut(profile.defaultShortcut)!
+    /// nil for profiles that press the control instead of sending a key.
+    func shortcut(for profile: MeetingProfile) -> Shortcut? {
+        guard profile.usesShortcut else { return nil }
+        return Shortcut(settings(for: profile).shortcut) ?? Shortcut(profile.defaultShortcut)
     }
 
     /// Enabled profiles, ordered by priorityOrder.
@@ -103,7 +104,7 @@ final class Preferences {
     // MARK: - Global settings
 
     var priorityOrder: [String] {
-        get { defaults.stringArray(forKey: Key.priorityOrder) ?? ["zoom", "meet", "teams"] }
+        get { defaults.stringArray(forKey: Key.priorityOrder) ?? ["zoom", "meet", "teams", "slack"] }
         set { defaults.set(newValue, forKey: Key.priorityOrder); notifyChange() }
     }
 

@@ -29,15 +29,21 @@ enum MuteState {
 /// When neither can be read, .unknown is returned and the UI stops showing a state.
 enum MuteStateReader {
 
-    /// Processes whose page accessibility has been enabled. Setting it once is enough.
-    private static var webAccessibilityEnabled = Set<pid_t>()
+    /// The state, plus the control that settled it when a control did.
+    /// The control is what .pressControl profiles press to toggle the mute.
+    struct Reading {
+        let state: MuteState
+        let control: AXUIElement?
+
+        static let unknown = Reading(state: .unknown, control: nil)
+    }
 
     private static let controlRoles: Set<String> = ["AXButton", "AXCheckBox", "AXRadioButton"]
 
-    static func read(_ target: MeetingTarget) -> MuteState {
+    static func read(_ target: MeetingTarget) -> Reading {
         let hints = target.profile.muteHints
         if hints.searchWebArea {
-            enableWebAccessibility(for: target.app)
+            AccessibilityHelper.enableWebAccessibility(for: target.app)
         }
         guard let root = rootElement(for: target) else { return .unknown }
 
@@ -48,8 +54,8 @@ enum MuteStateReader {
             maxDepth: hints.searchWebArea ? 30 : 16,
             budget: hints.searchWebArea ? 4000 : 1500
         )
-        if let state = search(root, depth: 0, context: &context) { return state }
-        return context.stateFallback ?? .unknown
+        if let hit = search(root, depth: 0, context: &context) { return hit }
+        return Reading(state: context.stateFallback ?? .unknown, control: nil)
     }
 
     private struct SearchContext {
@@ -61,8 +67,8 @@ enum MuteStateReader {
         var stateFallback: MuteState?
     }
 
-    /// A non-nil return means a button settled it. nil means keep walking.
-    private static func search(_ element: AXUIElement, depth: Int, context: inout SearchContext) -> MuteState? {
+    /// A non-nil return means a control settled it. nil means keep walking.
+    private static func search(_ element: AXUIElement, depth: Int, context: inout SearchContext) -> Reading? {
         guard depth < context.maxDepth, context.visited < context.budget else { return nil }
         context.visited += 1
 
@@ -74,13 +80,15 @@ enum MuteStateReader {
         let text = title + " " + description
 
         if controlRoles.contains(role) {
-            if let state = classify(text: text, isControl: true, hints: context.hints) { return state }
+            if let state = classify(text: text, isControl: true, hints: context.hints) {
+                return Reading(state: state, control: element)
+            }
         } else if context.stateFallback == nil {
             context.stateFallback = classify(text: text, isControl: false, hints: context.hints)
         }
 
         for child in AccessibilityHelper.children(element) {
-            if let state = search(child, depth: depth + 1, context: &context) { return state }
+            if let hit = search(child, depth: depth + 1, context: &context) { return hit }
         }
         return nil
     }
@@ -107,18 +115,6 @@ enum MuteStateReader {
         return nil
     }
 
-    /// Chromium-based browsers do not build an accessibility tree for page content by default.
-    /// Setting this attribute makes them build it (the mechanism screen readers rely on).
-    /// It is set only while a meeting is detected, so it is not a permanent cost.
-    private static func enableWebAccessibility(for app: NSRunningApplication) {
-        let pid = app.processIdentifier
-        guard !webAccessibilityEnabled.contains(pid) else { return }
-        let axApp = AXUIElementCreateApplication(pid)
-        for key in ["AXManualAccessibility", "AXEnhancedUserInterface"] {
-            AXUIElementSetAttributeValue(axApp, key as CFString, kCFBooleanTrue)
-        }
-        webAccessibilityEnabled.insert(pid)
-    }
 }
 
 /// Hints for reading mute state. Wording differs per app and language, so it is held as data.

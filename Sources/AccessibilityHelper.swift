@@ -157,6 +157,42 @@ enum AccessibilityHelper {
         return walk(window, depth: 0)
     }
 
+    /// Whether the window contains an element whose title or description matches.
+    /// Used for apps whose window title says nothing about being in a call (Slack huddles).
+    static func containsElement(in window: AXUIElement,
+                                matching patterns: [String],
+                                maxDepth: Int = 30,
+                                budget: Int = 3000) -> Bool {
+        var visited = 0
+        func walk(_ element: AXUIElement, depth: Int) -> Bool {
+            guard depth < maxDepth, visited < budget else { return false }
+            visited += 1
+
+            let text = title(element) + " " + (string(element, kAXDescriptionAttribute as String) ?? "")
+            if TitleMatcher.matches(title: text, patterns: patterns) { return true }
+
+            for child in children(element) where walk(child, depth: depth + 1) { return true }
+            return false
+        }
+        return walk(window, depth: 0)
+    }
+
+    /// Processes whose page accessibility has been enabled. Setting it once is enough.
+    private static var webAccessibilityEnabled = Set<pid_t>()
+
+    /// Chromium and Electron apps do not build an accessibility tree for their content by
+    /// default. Setting this attribute makes them build it (the mechanism screen readers rely
+    /// on). It is set only when a meeting is being looked for, so it is not a permanent cost.
+    static func enableWebAccessibility(for app: NSRunningApplication) {
+        let pid = app.processIdentifier
+        guard !webAccessibilityEnabled.contains(pid) else { return }
+        let axApp = AXUIElementCreateApplication(pid)
+        for key in ["AXManualAccessibility", "AXEnhancedUserInterface"] {
+            AXUIElementSetAttributeValue(axApp, key as CFString, kCFBooleanTrue)
+        }
+        webAccessibilityEnabled.insert(pid)
+    }
+
     // MARK: - Actions
 
     static func press(_ element: AXUIElement) {

@@ -160,19 +160,23 @@ struct SettingsView: View {
                         VStack(alignment: .leading, spacing: 8) {
                             Toggle("有効", isOn: model.binding(for: index).enabled)
 
-                            HStack(alignment: .firstTextBaseline) {
-                                Text("ショートカット")
-                                TextField("cmd+shift+a", text: model.binding(for: index).shortcut)
-                                    .frame(width: 150)
-                                if let shortcut = Shortcut(row.shortcut) {
-                                    Text(shortcut.symbolic).foregroundColor(.secondary)
-                                } else {
-                                    Text("⚠️ 解釈できません").foregroundColor(.orange)
+                            if row.profile.usesShortcut {
+                                HStack(alignment: .firstTextBaseline) {
+                                    Text("ショートカット")
+                                    TextField("cmd+shift+a", text: model.binding(for: index).shortcut)
+                                        .frame(width: 150)
+                                    if let shortcut = Shortcut(row.shortcut) {
+                                        Text(shortcut.symbolic).foregroundColor(.secondary)
+                                    } else {
+                                        Text("⚠️ 解釈できません").foregroundColor(.orange)
+                                    }
+                                    Spacer(minLength: 0)
                                 }
-                                Spacer(minLength: 0)
                             }
 
-                            caption("会議中と判定するタイトル（正規表現・1 行 1 パターン）")
+                            caption(row.profile.detection == .axElement
+                                    ? "会議中と判定する画面要素の文言（正規表現・1 行 1 パターン）"
+                                    : "会議中と判定するタイトル（正規表現・1 行 1 パターン）")
                             TextEditor(text: model.binding(for: index).patternsText)
                                 .font(.system(.body, design: .monospaced))
                                 .frame(height: 54)
@@ -180,9 +184,7 @@ struct SettingsView: View {
                                     .stroke(Color.secondary.opacity(0.3)))
 
                             HStack {
-                                caption(row.profile.needsFocus
-                                        ? "前面化 → キー送出 → 復帰"
-                                        : "グローバルショートカットで送出（前面化しない）")
+                                caption(activationSummary(row.profile))
                                 Spacer(minLength: 8)
                                 Button("デフォルトに戻す") { model.reset(index) }
                             }
@@ -196,6 +198,14 @@ struct SettingsView: View {
             }
             .padding(16)
             .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+
+    private func activationSummary(_ profile: MeetingProfile) -> String {
+        switch profile.activation {
+        case .globalShortcut: return "グローバルショートカットで送出（前面化しない）"
+        case .focusThenShortcut: return "前面化 → キー送出 → 復帰"
+        case .pressControl: return "ミュートボタンを直接押す（前面化しないので Space も切り替わらない）"
         }
     }
 

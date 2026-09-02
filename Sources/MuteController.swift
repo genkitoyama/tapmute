@@ -11,6 +11,8 @@ final class MuteController {
     enum Result {
         case sent(MeetingTarget)
         case busy
+        /// The control to press could not be found. Nothing was sent.
+        case controlNotFound
     }
 
     private(set) var isBusy = false
@@ -20,14 +22,38 @@ final class MuteController {
             completion(.busy)
             return
         }
-        let shortcut = Preferences.shared.shortcut(for: target.profile)
-
-        guard target.profile.needsFocus else {
-            shortcut.post()
+        switch target.profile.activation {
+        case .pressControl:
+            press(target, completion: completion)
+        case .globalShortcut:
+            Preferences.shared.shortcut(for: target.profile)?.post()
             completion(.sent(target))
-            return
+        case .focusThenShortcut:
+            guard let shortcut = Preferences.shared.shortcut(for: target.profile) else {
+                completion(.controlNotFound)
+                return
+            }
+            focusAndSend(target, shortcut: shortcut, completion: completion)
         }
-        focusAndSend(target, shortcut: shortcut, completion: completion)
+    }
+
+    /// Press the mute control directly. Nothing is focused and no Space is switched, which is
+    /// why this is preferred whenever the control exposes AXPress.
+    /// The search costs ~0.2s, so it happens off the main thread.
+    private func press(_ target: MeetingTarget, completion: @escaping (Result) -> Void) {
+        isBusy = true
+        DispatchQueue.global(qos: .userInitiated).async {
+            let control = MuteStateReader.read(target).control
+            DispatchQueue.main.async {
+                defer { self.isBusy = false }
+                guard let control else {
+                    completion(.controlNotFound)
+                    return
+                }
+                AccessibilityHelper.press(control)
+                completion(.sent(target))
+            }
+        }
     }
 
     /// Bring the target forward, send the key, and return to the previous app (and tab).

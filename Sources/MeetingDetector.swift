@@ -83,7 +83,7 @@ final class MeetingDetector {
             guard let self else { return }
             let mic = MicMonitor.isInputActive()
             let target = Preferences.shared.paused ? nil : self.scan(useWindowServer: useWindowServer, micActive: mic)
-            let state = target.map { MuteStateReader.read($0) } ?? .unknown
+            let state = target.map { MuteStateReader.read($0).state } ?? .unknown
 
             DispatchQueue.main.async {
                 self.scanning = false
@@ -108,6 +108,14 @@ final class MeetingDetector {
             for app in running where matches(app: app, profile: profile) {
                 let windows = AccessibilityHelper.windows(for: app, includeWindowServer: useWindowServer)
 
+                if profile.detection == .axElement {
+                    if let hit = scanElements(app: app, profile: profile, patterns: patterns,
+                                              windows: windows, micActive: micActive) {
+                        return hit
+                    }
+                    continue
+                }
+
                 // 1) Does a window title match (for a browser that is the active tab)
                 if let hit = windows.first(where: { TitleMatcher.matches(title: $0.title, patterns: patterns) }) {
                     return MeetingTarget(profile: profile, app: app, window: hit.element,
@@ -126,6 +134,33 @@ final class MeetingDetector {
                     }
                 }
             }
+        }
+        return nil
+    }
+
+    /// Looks for the elements that only exist during a call, for apps whose window title says
+    /// nothing (Slack huddles).
+    ///
+    /// The walk costs far more than a title comparison, so it runs only while the mic is in use.
+    /// The app that was already detected keeps being scanned regardless: if an app released the
+    /// input device while muted, a mic-only gate would lose the target and make unmuting
+    /// impossible, which is a worse failure than a wasted scan.
+    private func scanElements(app: NSRunningApplication,
+                              profile: MeetingProfile,
+                              patterns: [String],
+                              windows: [WindowInfo],
+                              micActive: Bool) -> MeetingTarget? {
+        let alreadyDetected = current?.app.processIdentifier == app.processIdentifier
+            && current?.profile.id == profile.id
+        guard micActive || alreadyDetected else { return nil }
+
+        AccessibilityHelper.enableWebAccessibility(for: app)
+
+        for info in windows {
+            guard let element = info.element else { continue }
+            guard AccessibilityHelper.containsElement(in: element, matching: patterns) else { continue }
+            return MeetingTarget(profile: profile, app: app, window: element,
+                                 tab: nil, matchedTitle: info.title, source: info.source)
         }
         return nil
     }

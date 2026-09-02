@@ -90,15 +90,23 @@ useful hint for "a call is in progress", but not for mute state.
 
 ## Supported apps
 
-| App | Default shortcut | Default title patterns (regex) | Needs focus |
+| App | Detected by | How the mute is sent | Default patterns |
 |---|---|---|---|
-| Zoom (`us.zoom.xos`) | ⇧⌘A | `Meeting` / `ミーティング` | no |
-| Google Meet (Chrome / Dia / Arc / Edge / Brave / PWA) | ⌘D | `^Meet\s*[-–—]` / `^Meet$` | yes |
-| Microsoft Teams (`com.microsoft.teams2`) | ⇧⌘M | `Meeting` / `会議` / `ミーティング` | yes |
+| Zoom (`us.zoom.xos`) | window title | ⇧⌘A as a global shortcut, nothing is focused | `Meeting` / `ミーティング` |
+| Google Meet (Chrome / Dia / Arc / Edge / Brave / PWA) | window and tab titles | focus → ⌘D → restore | `^Meet\s*[-–—]` / `^Meet$` |
+| Microsoft Teams (`com.microsoft.teams2`) | window title | focus → ⇧⌘M → restore | `Meeting` / `会議` / `ミーティング` |
+| Slack huddles (`com.tinyspeck.slackmacgap`) | accessibility elements | presses the mute control, nothing is focused | `Leave Huddle` / `ハドルから退出` / `Huddles actions` |
 
 - Meet is detected **even in a background tab**. The tab is switched for a moment, ⌘D is sent,
   then the previous tab and the previously active app are restored.
-- Title patterns vary by app version and UI language, so they are **editable in Settings**.
+- **Slack works differently on both counts.** Its window title does not change when a huddle
+  starts, so there is nothing to match; detection looks for the huddle toolbar in the
+  accessibility tree instead. That walk is far more expensive than comparing a title, so it runs
+  only while the mic is in use — plus for whichever app is already detected, so that an app which
+  released the input device while muted could never become impossible to unmute.
+  Slack's mute control exposes `AXPress`, so the mute is performed by pressing it directly:
+  no focus change and, unlike Meet and Teams, no Space switch.
+- Patterns vary by app version and UI language, so they are **editable in Settings**.
 
 ## Switching audio devices automatically
 
