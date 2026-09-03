@@ -93,6 +93,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func performMute() {
         guard let target = detector.current, !muteController.isBusy else { return }
         statusBar.showToast("\(target.displayName)  ミュート切替")
+        nowPlayingShield.reassert()
         muteController.toggle(target) { [weak self] _ in
             // Reflect the change in the icon without waiting for the periodic scan
             for delay in [0.35, 1.0] {

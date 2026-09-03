@@ -45,6 +45,12 @@ The only thing that works is **taking over the Now Playing role**: register comm
 player. Media keys are then routed here instead of to Music. Taking the role **only while a
 meeting is detected** is essential — holding it permanently would break music control.
 
+The role goes to whichever app most recently **started** playing, not to whichever app is
+claiming it. Republishing `MPNowPlayingInfoCenter` metadata does not count as starting: a browser
+tab that begins a video takes the role, and the media key then reaches it as well (mute toggles,
+and the video starts or stops along with it). Making a real `paused → playing` transition on the
+silent loop every two seconds, and again right after a key press, is what keeps the role here.
+
 The event tap is still used, to learn the moment the button is pressed (it is earlier and more
 reliable than the command path). The Now Playing command handler is normally just a shield that
 absorbs the command; it performs the mute itself only when the tap is not running, for example

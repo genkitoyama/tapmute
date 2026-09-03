@@ -23,6 +23,8 @@ final class NowPlayingShield {
     private(set) var isActive = false
     private var player: AVAudioPlayer?
     private var registeredCommands: [(MPRemoteCommand, Any)] = []
+    private var reassertTimer: Timer?
+    private var startedAt = Date()
 
     func activate() {
         guard !isActive else { return }
@@ -31,18 +33,53 @@ final class NowPlayingShield {
             return
         }
         registerCommands()
+        startedAt = Date()
+        publishNowPlaying()
 
+        // Another app that starts playing takes the role away from us. A browser tab with a
+        // media session (a YouTube tab, say) will otherwise receive the key and start playing.
+        // Re-publishing keeps this app looking like the current player.
+        reassertTimer = Timer.scheduledTimer(withTimeInterval: 2.0, repeats: true) { [weak self] _ in
+            self?.publishNowPlaying(restartPlayback: true)
+        }
+        isActive = true
+    }
+
+    /// Re-take the role right after a key press, so the next press is more likely to land here.
+    func reassert() {
+        guard isActive else { return }
+        publishNowPlaying(restartPlayback: true)
+    }
+
+    /// A now playing entry with a duration and a moving elapsed time. Without those the system
+    /// treats the claim as weaker than a real player's.
+    private func publishNowPlaying(restartPlayback: Bool = false) {
+        // Republishing the metadata is not enough: the system hands the role to whichever app
+        // most recently *started* playing. A browser tab that starts a video therefore takes it
+        // from us. Making a real paused -> playing transition is what puts this app back on top.
+        if restartPlayback, let player {
+            player.pause()
+            MPNowPlayingInfoCenter.default().playbackState = .paused
+            player.currentTime = 0
+            player.play()
+        }
+
+        let elapsed = Date().timeIntervalSince(startedAt)
         MPNowPlayingInfoCenter.default().nowPlayingInfo = [
             MPMediaItemPropertyTitle: "会議中（TapMute）",
             MPMediaItemPropertyArtist: "EarPods のボタンでミュート",
+            MPMediaItemPropertyPlaybackDuration: 60 * 60 * 24.0,
+            MPNowPlayingInfoPropertyElapsedPlaybackTime: elapsed,
             MPNowPlayingInfoPropertyPlaybackRate: 1.0,
+            MPNowPlayingInfoPropertyMediaType: MPNowPlayingInfoMediaType.audio.rawValue,
         ]
         MPNowPlayingInfoCenter.default().playbackState = .playing
-        isActive = true
     }
 
     func deactivate() {
         guard isActive else { return }
+        reassertTimer?.invalidate()
+        reassertTimer = nil
         MPNowPlayingInfoCenter.default().playbackState = .stopped
         MPNowPlayingInfoCenter.default().nowPlayingInfo = nil
         unregisterCommands()
