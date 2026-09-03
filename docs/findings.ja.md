@@ -181,6 +181,21 @@ Chrome 系は `AXTabGroup > AXRadioButton` でタブを公開するが、Dia の
 Space の切り替わりが起きない。操作方法もプロファイルの属性にしてある
 （`.globalShortcut` / `.focusThenShortcut` / `.pressControl`）。
 
+**バックグラウンドで押せるかの検証。** ハドル中でなくても確かめられる。Slack を背面に置いたまま
+可逆なトグル（フォーカスモード）に `AXPress` を送り、ボタン自身の説明が反転するかを見た。
+
+```
+Slack は前面か: false
+押す前:   "Turn on focus mode"
+押した後: "Exit focus mode"      ← 効いている
+復帰後:   "Turn on focus mode"
+```
+
+前面化せずに押せることが確認できた。Electron アプリ全般に同じ手が使えるはず。
+
+なお、自分宛て DM にはハドルボタン自体が存在しない（実測）。一人で試すならチャンネルで
+`Start huddle in <channel>` から開始する必要がある。
+
 ---
 
 ## 設計判断
@@ -222,7 +237,7 @@ Space の切り替わりが起きない。操作方法もプロファイルの�
 | 会議中の Music 抑止 | 確認済み |
 | 別 Space の会議検出 | 確認済み |
 | 再ビルド後の権限維持 | 確認済み |
-| Slack ハドルの検出・ミュート・状態表示 | ハドル中の文言と要素は実測。**ハドル中の実動作は未確認** |
+| Slack ハドルの検出・ミュート・状態表示 | ハドル中の文言と要素、および背面での AXPress を実測。**ハドル中の通しの動作は未確認** |
 | オーディオ自動切り替え | 切り替え API の動作と復帰を確認。**EarPods 実機では未確認** |
 | USB-C EarPods | **未確認**。HID Consumer Control も同じ `NX_SYSDEFINED` に変換されるため動くはずだが、実機が無い。`make probe-keys` で数秒で判定できる |
 
