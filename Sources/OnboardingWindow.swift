@@ -32,7 +32,7 @@ struct OnboardingView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text("TapMute のセットアップ").font(.title2).bold()
-            Text("EarPods の中央ボタンで Zoom / Google Meet / Teams のミュートを切り替えます。")
+            Text("EarPods の中央ボタンで Zoom / Google Meet / Teams / Slack ハドルのミュートを切り替えます。")
                 .foregroundColor(.secondary)
 
             ForEach(PermissionManager.Permission.allCases, id: \.self) { permission in

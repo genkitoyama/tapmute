@@ -183,7 +183,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let alert = NSAlert()
         alert.messageText = "TapMute"
         alert.informativeText = """
-            EarPods の中央ボタンで Zoom / Google Meet / Microsoft Teams のミュートを切り替えます。
+            EarPods の中央ボタンで Zoom / Google Meet / Microsoft Teams / Slack ハドルの
+            ミュートを切り替えます。
             会議が検出されていないときは、ボタンは通常どおり音楽の再生/停止として働きます。
             """
         alert.addButton(withTitle: "OK")
