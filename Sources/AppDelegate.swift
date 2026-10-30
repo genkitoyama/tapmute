@@ -94,7 +94,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         guard let target = detector.current, !muteController.isBusy else { return }
         statusBar.showToast("\(target.displayName)  ミュート切替")
         nowPlayingShield.reassert()
-        muteController.toggle(target) { [weak self] _ in
+        muteController.toggle(target) { [weak self] result in
+            if case .notFocused = result {
+                self?.statusBar.showToast("\(target.displayName) を前面に出せず、送信を中止")
+            }
             // Reflect the change in the icon without waiting for the periodic scan
             for delay in [0.35, 1.0] {
                 DispatchQueue.main.asyncAfter(deadline: .now() + delay) { self?.detector.refresh() }

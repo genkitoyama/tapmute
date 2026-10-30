@@ -199,9 +199,21 @@ enum AccessibilityHelper {
         AXUIElementPerformAction(element, kAXPressAction as CFString)
     }
 
-    static func raise(_ window: AXUIElement) {
+    /// Make the window the app's main and focused window, and bring it to the front.
+    /// Raising alone is not enough: activating the app afterwards can put its previous key
+    /// window back on top (measured with two Dia windows), so the app's focus is set as well.
+    static func raise(_ window: AXUIElement, in app: NSRunningApplication) {
+        let axApp = AXUIElementCreateApplication(app.processIdentifier)
+        AXUIElementSetAttributeValue(axApp, kAXFocusedWindowAttribute as CFString, window)
         AXUIElementSetAttributeValue(window, kAXMainAttribute as CFString, kCFBooleanTrue)
         AXUIElementPerformAction(window, kAXRaiseAction as CFString)
+    }
+
+    /// Title of the window that will receive keystrokes for the app.
+    static func focusedWindowTitle(of app: NSRunningApplication) -> String {
+        let axApp = AXUIElementCreateApplication(app.processIdentifier)
+        guard let value = attribute(axApp, kAXFocusedWindowAttribute as String) else { return "" }
+        return title(value as! AXUIElement)
     }
 
     static func activate(_ app: NSRunningApplication) {
